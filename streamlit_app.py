@@ -25,7 +25,7 @@ with st.sidebar:
     st.header("Projekt")
     manufacturer_hint = st.text_input("Hersteller Hinweis", "")
     fixture_hint = st.text_input("Modell Hinweis", "")
-    model = st.selectbox("KI Modell", ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"], index=0)
+    model = st.selectbox("KI Modell", ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"], index=0)
     st.divider()
     st.header("Lernen")
     kb_file = st.file_uploader("Trainingsdaten importieren (.jsonl)", type=["jsonl"], key="kb_upload")
@@ -83,6 +83,7 @@ if uploaded and st.button("KI Analyse starten", type="primary"):
         f.write(uploaded.getvalue())
         tmp = f.name
     knowledge_context = build_knowledge_context(st.session_state.training_records, manual_rules)
+    st.info("Analyse startet. PDFs werden vorher lokal in Bilder umgewandelt, damit Gemini nicht am File-Upload hängt.")
     with st.spinner("KI analysiert Manual/DMX-Sheet mit Trainingskontext..."):
         try:
             fixture = extract_fixture_with_gemini(api_key, tmp, model=model, knowledge_context=knowledge_context)

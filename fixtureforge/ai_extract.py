@@ -12,7 +12,6 @@ def _extract_json(text: str) -> dict:
     if text.startswith("```"):
         text = re.sub(r"^```(?:json)?\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
-    # find first JSON object if model added text
     start = text.find("{")
     end = text.rfind("}")
     if start >= 0 and end > start:
@@ -20,39 +19,23 @@ def _extract_json(text: str) -> dict:
     return json.loads(text)
 
 
-def extract_fixture_with_gemini(
-    api_key: str,
-    file_path: str,
-    model: str = "gemini-2.5-flash",
-    knowledge_context: str = "",
-) -> Fixture:
-    """Upload a manual/image to Gemini and extract the universal Fixture JSON.
+def _render_pdf_to_png_bytes(path: Path, max_pages: int = 9, zoom: float = 1.6) -> list[bytes]:
+    """Render image-only PDFs to PNG pages. This avoids slow Gemini file processing."""
+    import fitz  # PyMuPDF
+    pages: list[bytes] = []
+    doc = fitz.open(str(path))
+    for i in range(min(len(doc), max_pages)):
+        page = doc.load_page(i)
+        pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
+        pages.append(pix.tobytes("png"))
+    doc.close()
+    return pages
 
-    This version intentionally does not use strict response_schema because some
-    Gemini endpoints reject complex Pydantic schemas with nested $defs/anyOf.
-    Instead, the schema is included in the prompt and validated locally.
-    """
-    if not api_key or not api_key.strip():
-        raise RuntimeError("GEMINI_API_KEY fehlt. Bitte in Streamlit → Settings → Secrets eintragen.")
 
-    client = genai.Client(api_key=api_key.strip())
-    path = Path(file_path)
-    uploaded = client.files.upload(file=str(path))
-
-    # Some file types can briefly stay in PROCESSING. Poll a little.
-    try:
-        for _ in range(20):
-            state = getattr(getattr(uploaded, "state", None), "name", None) or str(getattr(uploaded, "state", ""))
-            if "PROCESS" not in state.upper():
-                break
-            time.sleep(1)
-            uploaded = client.files.get(name=uploaded.name)
-    except Exception:
-        pass
-
+def _build_prompt(knowledge_context: str) -> str:
     schema_hint = Fixture.model_json_schema()
-    prompt = f"""
-Analysiere die hochgeladene Datei und extrahiere die komplette Fixture/DMX-Struktur.
+    return f"""
+Analysiere die hochgeladene Datei/Bilder und extrahiere die komplette Fixture/DMX-Struktur.
 
 Gib AUSSCHLIESSLICH gültiges JSON zurück. Kein Markdown, keine Erklärung.
 Das JSON muss logisch diesem Schema entsprechen:
@@ -68,12 +51,66 @@ Wichtige Regeln:
 - Fine-Kanäle resolution="fine" und fine_of=<coarse channel>.
 - Grobe Pan/Tilt bei 16 Bit resolution="coarse".
 - Normale Kanäle resolution="8bit".
+- Bei Tabellen mit mehreren Modus-Spalten die Kanalnummern pro Mode korrekt übernehmen.
+- Wenn ein Wertbereich wie 0-10 keine Funktion und 11-255 Strobe ist, beide ranges anlegen.
 """.strip()
+
+
+def extract_fixture_with_gemini(
+    api_key: str,
+    file_path: str,
+    model: str = "gemini-2.0-flash",
+    knowledge_context: str = "",
+) -> Fixture:
+    """Extract universal Fixture JSON.
+
+    v0.3.4: PDFs werden lokal in PNG-Seiten gerendert und als Bilder an Gemini gesendet.
+    Das ist bei DMX-Sheets deutlich zuverlässiger als Gemini File Upload für image-only PDFs.
+    """
+    if not api_key or not api_key.strip():
+        raise RuntimeError("GEMINI_API_KEY fehlt. Bitte in Streamlit → Settings → Secrets eintragen.")
+
+    client = genai.Client(api_key=api_key.strip())
+    path = Path(file_path)
+    prompt = _build_prompt(knowledge_context)
+
+    contents = [prompt]
+    used_inline_images = False
+
+    if path.suffix.lower() == ".pdf":
+        try:
+            pages = _render_pdf_to_png_bytes(path, max_pages=9, zoom=1.6)
+            if pages:
+                used_inline_images = True
+                contents.append("\nDie folgenden Bilder sind gerenderte Seiten des PDF-Manuals/DMX-Sheets in Reihenfolge. Lies insbesondere die Tabellen und Modus-Spalten.")
+                for idx, data in enumerate(pages, start=1):
+                    contents.append(f"\n--- PDF Seite {idx} ---")
+                    contents.append(types.Part.from_bytes(data=data, mime_type="image/png"))
+        except Exception:
+            # Fallback below via file upload
+            used_inline_images = False
+
+    if not used_inline_images:
+        if path.suffix.lower() in [".png", ".jpg", ".jpeg"]:
+            mime = "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
+            contents.append(types.Part.from_bytes(data=path.read_bytes(), mime_type=mime))
+        else:
+            uploaded = client.files.upload(file=str(path))
+            try:
+                for _ in range(15):
+                    state = getattr(getattr(uploaded, "state", None), "name", None) or str(getattr(uploaded, "state", ""))
+                    if "PROCESS" not in state.upper():
+                        break
+                    time.sleep(1)
+                    uploaded = client.files.get(name=uploaded.name)
+            except Exception:
+                pass
+            contents.append(uploaded)
 
     try:
         response = client.models.generate_content(
             model=model,
-            contents=[uploaded, prompt],
+            contents=contents,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
                 response_mime_type="application/json",
@@ -83,8 +120,8 @@ Wichtige Regeln:
     except Exception as e:
         msg = str(e)
         raise RuntimeError(
-            "Gemini konnte die Datei nicht analysieren. Prüfe bitte: API-Key in Secrets, Free-Tier-Limit, Modellname, Dateigröße/Dateityp. "
-            f"Originalfehler: {msg[:800]}"
+            "Gemini konnte die Datei nicht analysieren. Prüfe: API-Key, Free-Tier-Limit, Modellname und ob das Projekt in Google AI Studio für die Gemini API freigeschaltet ist. "
+            f"Originalfehler: {msg[:1200]}"
         ) from e
 
     text = response.text or "{}"
@@ -94,5 +131,5 @@ Wichtige Regeln:
     except Exception as e:
         raise RuntimeError(
             "Gemini hat keine gültige Fixture-JSON-Struktur geliefert. "
-            f"Antwort-Anfang: {text[:1000]}"
+            f"Antwort-Anfang: {text[:1200]}"
         ) from e
