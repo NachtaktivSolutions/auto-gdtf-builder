@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.streamlit/secrets.toml
+/generated/
+/uploads/
