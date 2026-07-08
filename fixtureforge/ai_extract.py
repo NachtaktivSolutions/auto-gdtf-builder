@@ -9,11 +9,27 @@ from .prompts import SYSTEM_PROMPT
 
 JSON_SCHEMA: dict[str, Any] = Fixture.model_json_schema()
 
-def extract_fixture_with_gemini(api_key: str, file_path: str, model: str = "gemini-2.0-flash") -> Fixture:
+def extract_fixture_with_gemini(
+    api_key: str,
+    file_path: str,
+    model: str = "gemini-2.0-flash",
+    knowledge_context: str = "",
+) -> Fixture:
+    """Upload a manual/image to Gemini and extract the universal Fixture JSON."""
     client = genai.Client(api_key=api_key)
     path = Path(file_path)
     uploaded = client.files.upload(file=str(path))
-    prompt = "Analysiere diese Datei und extrahiere die komplette Fixture/DMX-Struktur als JSON."
+
+    prompt = """
+Analysiere diese Datei und extrahiere die komplette Fixture/DMX-Struktur als JSON.
+
+Wende diese FixtureForge-Korrekturregeln und Trainingsbeispiele an, falls vorhanden:
+""".strip()
+    if knowledge_context.strip():
+        prompt += "\n\n" + knowledge_context.strip()
+    else:
+        prompt += "\n\nKeine zusätzlichen Trainingsregeln vorhanden."
+
     response = client.models.generate_content(
         model=model,
         contents=[uploaded, prompt],

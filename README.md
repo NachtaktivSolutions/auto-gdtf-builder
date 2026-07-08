@@ -1,31 +1,34 @@
-# FixtureForge AI v0.3
+# FixtureForge AI v0.3.2
 
-KI-gestützter DMX Manual -> Fixture Exporter.
+KI-gestützter Fixture-Interpreter für DMX-Manuals.
+
+## Features
+
+- PDF/JPG/PNG Upload
+- Gemini Analyse mit Universal Fixture JSON
+- bearbeitbare Kanal-Tabelle
+- Prompt-Training über bestätigte Korrekturen
+- Import/Export von Trainingsdaten als JSONL
+- Export als GDTF oder Daslight/Wolfmix CSV
 
 ## Streamlit Secrets
+
+In Streamlit unter Settings → Secrets eintragen:
 
 ```toml
 GEMINI_API_KEY = "dein_gemini_api_key"
 ```
 
-## Start lokal
+## Lernen / Training
 
-```bash
-pip install -r requirements.txt
-streamlit run streamlit_app.py
-```
+Das System nutzt am Anfang Prompt-Training:
 
-## Workflow
+1. Manual hochladen
+2. KI analysiert Fixture
+3. Tabelle korrigieren
+4. Korrektur übernehmen
+5. Korrektur als Trainingsdaten merken
+6. Trainingsdaten herunterladen
+7. Beim nächsten Mal die JSONL-Datei links importieren
 
-1. PDF/JPG/PNG hochladen
-2. KI extrahiert Fixture-Daten + DMX-Kanäle
-3. Tabelle prüfen/korrigieren
-4. Korrektur als Trainingsdaten speichern
-5. Export als GDTF oder Daslight/Wolfmix CSV
-
-Hinweis: Der GDTF-Export ist ein MVP-Exporter und muss mit GDTF Builder/grandMA3 getestet werden.
-
-
-## v0.3.1
-- Passwortsperre entfernt.
-- KI-Analyse über Gemini ist bereits eingebaut. Benötigt nur `GEMINI_API_KEY` in Streamlit Secrets.
+Echtes Fine-Tuning kommt später, wenn genug geprüfte Beispiele vorhanden sind.
