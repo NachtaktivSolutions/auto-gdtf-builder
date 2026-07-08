@@ -1,23 +1,31 @@
-# Auto GDTF Builder MVP
+# FixtureForge AI v0.3
 
-Streamlit-App: PDF/Bild eines DMX-Manuals hochladen, KI extrahiert Kanäle/Values, Tabelle korrigieren, Export als GDTF oder Daslight/Wolfmix-Kanalmap.
+KI-gestützter DMX Manual -> Fixture Exporter.
 
 ## Streamlit Secrets
 
 ```toml
-GEMINI_API_KEY = "dein_key"
-APP_PASSWORD = "dein_passwort"
+GEMINI_API_KEY = "dein_gemini_api_key"
 ```
 
-## Dateien
+## Start lokal
 
-- `streamlit_app.py` – Benutzeroberfläche
-- `ai_extract.py` – Gemini-Extraktion
-- `gdtf_builder.py` – GDTF/CSV Generator
-- `daslight_builder.py` – aktuell CSV-Map für Daslight/Wolfmix
-- `learning.py` – exportiert Korrekturen als Lernbeispiele
-- `schema.py`, `prompts.py` – JSON-Schema und Prompt
+```bash
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+```
 
-## Wichtig
+## Workflow
 
-Das ist ein MVP. GDTF-Dateien bitte in GDTF Builder und grandMA3 testen.
+1. PDF/JPG/PNG hochladen
+2. KI extrahiert Fixture-Daten + DMX-Kanäle
+3. Tabelle prüfen/korrigieren
+4. Korrektur als Trainingsdaten speichern
+5. Export als GDTF oder Daslight/Wolfmix CSV
+
+Hinweis: Der GDTF-Export ist ein MVP-Exporter und muss mit GDTF Builder/grandMA3 getestet werden.
+
+
+## v0.3.1
+- Passwortsperre entfernt.
+- KI-Analyse über Gemini ist bereits eingebaut. Benötigt nur `GEMINI_API_KEY` in Streamlit Secrets.
