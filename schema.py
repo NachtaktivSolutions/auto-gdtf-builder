@@ -1,80 +1,36 @@
-"""Interne Datenstruktur fuer den KI-zu-GDTF-Workflow.
-
-Die KI soll NIE direkt GDTF-XML schreiben. Sie soll dieses JSON fuellen.
-Der Generator baut daraus deterministisch eine .gdtf-Datei.
-"""
-
-FIXTURE_JSON_EXAMPLE = {
-    "manufacturer": "Eurolite",
-    "fixture_name": "LED TMH Bar B240",
-    "short_name": "TMH Bar B240",
-    "notes": ["Example structure"],
-    "physical": {
-        "pan_degrees": 540,
-        "tilt_degrees": 180,
-        "beam_angle_degrees": 2,
-        "lamp_type": "LED",
-        "colors": ["Red", "Green", "Blue", "White"]
-    },
-    "modes": [
+EXTRACTION_SCHEMA_DESCRIPTION = """
+Return ONLY valid JSON with this structure:
+{
+  "manufacturer": "string",
+  "fixture_name": "string",
+  "notes": "string",
+  "modes": [
+    {
+      "mode_name": "48CH",
+      "channel_count": 48,
+      "channels": [
         {
-            "name": "48CH",
-            "channel_count": 48,
-            "channels": [
-                {
-                    "channel": 1,
-                    "geometry": "Head 1",
-                    "attribute": "Pan",
-                    "function": "Pan coarse",
-                    "resolution": "coarse",
-                    "fine_channel": 2,
-                    "default": 128,
-                    "ranges": [{"from": 0, "to": 255, "name": "Pan 0-540"}]
-                },
-                {
-                    "channel": 3,
-                    "geometry": "Head 1",
-                    "attribute": "Tilt",
-                    "function": "Tilt coarse",
-                    "resolution": "coarse",
-                    "fine_channel": 4,
-                    "default": 128,
-                    "ranges": [{"from": 0, "to": 255, "name": "Tilt 0-180"}]
-                }
-            ]
+          "channel": 1,
+          "fixture_part": "Head 1",
+          "raw_name": "Horizontale Bewegung (PAN) 1",
+          "attribute": "Pan",
+          "resolution": "8bit|16bit_coarse|16bit_fine|virtual|unknown",
+          "fine_for_channel": null,
+          "default_dmx": 0,
+          "highlight_dmx": null,
+          "ranges": [
+            {"from": 0, "to": 255, "name": "Pan", "type": "continuous", "comment": ""}
+          ]
         }
-    ]
+      ]
+    }
+  ]
 }
-
-ALLOWED_ATTRIBUTES = [
-    "Dimmer", "Shutter", "Strobe", "Pan", "Tilt", "PanTiltSpeed",
-    "ColorAdd_R", "ColorAdd_G", "ColorAdd_B", "ColorAdd_W", "ColorMacro",
-    "Macro", "MacroSpeed", "Reset", "NoFunction", "Gobo", "GoboRotate",
-    "Prism", "PrismRotate", "Zoom", "Focus", "Frost", "Iris", "Unknown"
-]
-
-ATTRIBUTE_HINTS = {
-    "pan": "Pan",
-    "horizontale bewegung": "Pan",
-    "tilt": "Tilt",
-    "vertikale bewegung": "Tilt",
-    "dimmer": "Dimmer",
-    "dimmerintensität": "Dimmer",
-    "strobe": "Strobe",
-    "shutter": "Shutter",
-    "rot": "ColorAdd_R",
-    "red": "ColorAdd_R",
-    "grün": "ColorAdd_G",
-    "green": "ColorAdd_G",
-    "blau": "ColorAdd_B",
-    "blue": "ColorAdd_B",
-    "weiß": "ColorAdd_W",
-    "white": "ColorAdd_W",
-    "farbmakro": "ColorMacro",
-    "color macro": "ColorMacro",
-    "bewegungsmakro": "Macro",
-    "macro": "Macro",
-    "speed": "MacroSpeed",
-    "geschwindigkeit": "MacroSpeed",
-    "reset": "Reset",
-}
+Rules:
+- Include all DMX modes visible in the manual/sheet.
+- Use integers for channel numbers and DMX ranges.
+- Map German and English labels to console-friendly attributes.
+- Attribute examples: Dimmer, Shutter, Strobe, Pan, Pan Fine, Tilt, Tilt Fine, PanTiltSpeed, ColorAdd_R, ColorAdd_G, ColorAdd_B, ColorAdd_W, ColorMacro, Macro, MacroSpeed, Reset, Gobo1, Gobo1Rotate, Prism, Zoom, Focus, Frost, Iris.
+- For fine channels, set resolution to "16bit_fine" and fine_for_channel to the coarse channel number.
+- If unsure, use attribute "Unknown" but keep raw_name and ranges.
+"""

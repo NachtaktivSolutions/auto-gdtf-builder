@@ -1,116 +1,42 @@
-import base64
 import json
 import os
 import re
-from typing import Any, Dict, Optional
+import tempfile
+from typing import Any, Dict
 
-import requests
-import streamlit as st
+import google.generativeai as genai
 
-from prompts import SYSTEM_PROMPT, USER_TEMPLATE
-
-
-def _get_secret(name: str) -> Optional[str]:
-    try:
-        value = st.secrets.get(name)
-        if value:
-            return str(value)
-    except Exception:
-        pass
-    return os.getenv(name)
+from prompts import SYSTEM_PROMPT, USER_PROMPT
 
 
-def _extract_json(text: str) -> Dict[str, Any]:
-    """Robuste JSON-Extraktion aus Modellantworten."""
+def _strip_json(text: str) -> str:
     text = text.strip()
-    if text.startswith("```"):
-        text = re.sub(r"^```(?:json)?", "", text, flags=re.I).strip()
-        text = re.sub(r"```$", "", text).strip()
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", text, flags=re.S)
-        if not match:
-            raise
-        return json.loads(match.group(0))
+    text = re.sub(r"^```(?:json)?\s*", "", text)
+    text = re.sub(r"\s*```$", "", text)
+    start = text.find("{")
+    end = text.rfind("}")
+    if start >= 0 and end >= start:
+        text = text[start:end+1]
+    return text
 
 
-def _read_interactions_text(payload: Dict[str, Any]) -> str:
-    """Extrahiert Text aus unterschiedlichen Gemini REST-Antwortformen."""
-    if "output_text" in payload:
-        return payload["output_text"]
-    steps = payload.get("steps") or []
-    if steps:
-        content = steps[-1].get("content") or []
-        texts = []
-        for part in content:
-            if isinstance(part, dict) and part.get("text"):
-                texts.append(part["text"])
-        if texts:
-            return "\n".join(texts)
-    # Fallback fuer generateContent-aehnliche Responses
-    candidates = payload.get("candidates") or []
-    if candidates:
-        parts = candidates[0].get("content", {}).get("parts", [])
-        texts = [p.get("text", "") for p in parts if isinstance(p, dict)]
-        if texts:
-            return "\n".join(texts)
-    raise RuntimeError(f"Konnte keinen Text in Gemini-Antwort finden: {payload}")
-
-
-def extract_fixture_with_gemini(
-    file_bytes: bytes,
-    mime_type: str,
-    filename: str,
-    manufacturer_hint: str = "",
-    model_hint: str = "",
-    mode_hint: str = "alle Modi",
-    model: str = "gemini-3.5-flash",
-) -> Dict[str, Any]:
-    """Sendet PDF/Bild inline an Gemini Interactions API und erwartet JSON zurueck.
-
-    Benoetigt Streamlit Secret GEMINI_API_KEY.
-    """
-    api_key = _get_secret("GEMINI_API_KEY")
+def extract_fixture_json(uploaded_file, api_key: str, model_name: str = "gemini-1.5-flash") -> Dict[str, Any]:
     if not api_key:
-        raise RuntimeError("GEMINI_API_KEY fehlt. Bitte in Streamlit unter App settings -> Secrets eintragen.")
-
-    b64 = base64.b64encode(file_bytes).decode("utf-8")
-    if mime_type == "application/pdf":
-        file_part = {"type": "document", "data": b64, "mime_type": mime_type}
-    elif mime_type.startswith("image/"):
-        file_part = {"type": "image", "data": b64, "mime_type": mime_type}
-    else:
-        # Text/sonstige Dateien als Dokument versuchen
-        file_part = {"type": "document", "data": b64, "mime_type": mime_type or "application/octet-stream"}
-
-    user_prompt = USER_TEMPLATE.format(
-        manufacturer_hint=manufacturer_hint or "unbekannt",
-        model_hint=model_hint or "unbekannt",
-        mode_hint=mode_hint or "alle Modi",
-    )
-
-    payload = {
-        "model": model,
-        "input": [
-            {"type": "text", "text": SYSTEM_PROMPT},
-            file_part,
-            {"type": "text", "text": user_prompt},
-        ],
-    }
-
-    url = "https://generativelanguage.googleapis.com/v1beta/interactions"
-    resp = requests.post(
-        url,
-        headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
-        json=payload,
-        timeout=180,
-    )
-    if resp.status_code >= 400:
-        raise RuntimeError(f"Gemini API Fehler {resp.status_code}: {resp.text[:1200]}")
-
-    text = _read_interactions_text(resp.json())
-    data = _extract_json(text)
-    data.setdefault("notes", [])
-    data["notes"].append(f"Analysiert aus {filename} mit {model}.")
-    return data
+        raise RuntimeError("GEMINI_API_KEY fehlt. Bitte in Streamlit Secrets eintragen.")
+    genai.configure(api_key=api_key)
+    suffix = os.path.splitext(uploaded_file.name)[1] or ".bin"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(uploaded_file.getvalue())
+        tmp_path = tmp.name
+    try:
+        uploaded = genai.upload_file(tmp_path, display_name=uploaded_file.name)
+        model = genai.GenerativeModel(model_name, system_instruction=SYSTEM_PROMPT)
+        response = model.generate_content([USER_PROMPT, uploaded], generation_config={"temperature": 0.1})
+        raw = response.text or ""
+        data = json.loads(_strip_json(raw))
+        return data
+    finally:
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass

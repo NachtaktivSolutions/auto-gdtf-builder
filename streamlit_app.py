@@ -1,276 +1,156 @@
 import json
+import os
 from copy import deepcopy
 
 import pandas as pd
 import streamlit as st
 
-from ai_extract import extract_fixture_with_gemini
-from gdtf_builder import build_channel_csv, build_gdtf_package, validate_fixture_json
+from ai_extract import extract_fixture_json
+from daslight_builder import build_daslight_wolfmix_placeholder
+from gdtf_builder import build_channel_csv, build_gdtf
+from learning import make_learning_record
 
-st.set_page_config(page_title="Auto GDTF Generator", page_icon="💡", layout="wide")
+st.set_page_config(page_title="Auto GDTF Builder", page_icon="💡", layout="wide")
 
+st.title("💡 Auto GDTF Builder")
+st.caption("Manual oder DMX-Sheet hochladen → KI erkennt Kanäle & Values → prüfen/korrigieren → Export")
 
-def get_secret(name: str, default=None):
-    try:
-        return st.secrets.get(name, default)
-    except Exception:
-        return default
+APP_PASSWORD = st.secrets.get("APP_PASSWORD", "") if hasattr(st, "secrets") else ""
+GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "") if hasattr(st, "secrets") else ""
 
-
-def require_password():
-    app_password = get_secret("APP_PASSWORD", "")
-    if not app_password:
-        st.warning("APP_PASSWORD ist noch nicht gesetzt. Die App ist aktuell ohne Passwort offen.")
-        return True
-    if st.session_state.get("auth_ok"):
-        return True
-    st.title("🔐 Auto GDTF Generator")
-    pwd = st.text_input("Passwort", type="password")
-    if st.button("Einloggen"):
-        if pwd == app_password:
-            st.session_state["auth_ok"] = True
-            st.rerun()
-        else:
-            st.error("Falsches Passwort")
-    return False
-
-
-def normalize_mime(uploaded_file) -> str:
-    mime = uploaded_file.type or "application/octet-stream"
-    name = uploaded_file.name.lower()
-    if name.endswith(".pdf"):
-        return "application/pdf"
-    if name.endswith(".png"):
-        return "image/png"
-    if name.endswith(".jpg") or name.endswith(".jpeg"):
-        return "image/jpeg"
-    if name.endswith(".webp"):
-        return "image/webp"
-    return mime
-
-
-def mode_to_df(mode):
-    rows = []
-    for ch in mode.get("channels", []):
-        ranges = ch.get("ranges") or []
-        ranges_text = " | ".join([f"{r.get('from')}-{r.get('to')}: {r.get('name')}" for r in ranges])
-        rows.append({
-            "channel": ch.get("channel"),
-            "fine_channel": ch.get("fine_channel"),
-            "geometry": ch.get("geometry"),
-            "attribute": ch.get("attribute"),
-            "function": ch.get("function"),
-            "default": ch.get("default"),
-            "ranges": ranges_text,
-        })
-    return pd.DataFrame(rows)
-
-
-def parse_ranges(text):
-    ranges = []
-    if not text:
-        return [{"from": 0, "to": 255, "name": "Full"}]
-    for part in str(text).split("|"):
-        part = part.strip()
-        if not part:
-            continue
-        if ":" in part:
-            rng, name = part.split(":", 1)
-        else:
-            rng, name = part, part
-        if "-" in rng:
-            fr, to = rng.split("-", 1)
-        else:
-            fr, to = "0", "255"
-        try:
-            ranges.append({"from": int(fr.strip()), "to": int(to.strip()), "name": name.strip()})
-        except Exception:
-            ranges.append({"from": 0, "to": 255, "name": part})
-    return ranges or [{"from": 0, "to": 255, "name": "Full"}]
-
-
-def df_to_mode(original_mode, df):
-    mode = deepcopy(original_mode)
-    channels = []
-    for _, row in df.iterrows():
-        try:
-            channel = int(row["channel"])
-        except Exception:
-            continue
-        fine = row.get("fine_channel")
-        try:
-            fine = int(fine) if pd.notna(fine) and str(fine).strip() != "" else None
-        except Exception:
-            fine = None
-        default = row.get("default")
-        try:
-            default = int(default) if pd.notna(default) and str(default).strip() != "" else None
-        except Exception:
-            default = None
-        channels.append({
-            "channel": channel,
-            "geometry": str(row.get("geometry") or "Base"),
-            "attribute": str(row.get("attribute") or "Unknown"),
-            "function": str(row.get("function") or row.get("attribute") or "Unknown"),
-            "resolution": "16bit" if fine else "8bit",
-            "fine_channel": fine,
-            "default": default,
-            "ranges": parse_ranges(row.get("ranges")),
-        })
-    mode["channels"] = channels
-    return mode
-
-
-if not require_password():
-    st.stop()
-
-st.title("💡 Auto GDTF Generator")
-st.caption("MVP: Manual/DMX-Sheet hochladen → KI extrahiert Kanalmap → Review → .gdtf Download")
+if APP_PASSWORD:
+    pw = st.text_input("Passwort", type="password")
+    if pw != APP_PASSWORD:
+        st.stop()
 
 with st.sidebar:
-    st.header("Einstellungen")
-    model = st.text_input("Gemini Modell", value="gemini-3.5-flash")
-    st.markdown("Secrets in Streamlit:")
-    st.code('GEMINI_API_KEY = "..."\nAPP_PASSWORD = "..."', language="toml")
-    if st.button("Session leeren"):
-        st.session_state.clear()
-        st.rerun()
+    st.header("Workflow")
+    st.write("1. PDF/Bild hochladen")
+    st.write("2. KI analysieren lassen")
+    st.write("3. Tabelle korrigieren")
+    st.write("4. Format wählen")
+    st.write("5. Datei exportieren")
+    st.divider()
+    model = st.selectbox("KI-Modell", ["gemini-1.5-flash", "gemini-1.5-pro"], index=0)
+    st.caption("Flash ist schneller/kostenärmer. Pro ist besser bei schwierigen Manuals.")
 
-col_a, col_b, col_c = st.columns(3)
+uploaded = st.file_uploader("PDF, JPG oder PNG hochladen", type=["pdf", "jpg", "jpeg", "png", "webp"])
+
+col_a, col_b = st.columns(2)
 with col_a:
-    manufacturer_hint = st.text_input("Hersteller", placeholder="z. B. Eurolite")
+    manufacturer_override = st.text_input("Hersteller optional", placeholder="z. B. Eurolite")
 with col_b:
-    model_hint = st.text_input("Modell", placeholder="z. B. LED TMH Bar B240")
-with col_c:
-    mode_hint = st.text_input("Fokus / DMX-Modus", value="alle Modi")
+    fixture_override = st.text_input("Modell optional", placeholder="z. B. LED TMH Bar B240")
 
-uploaded = st.file_uploader("Manual oder DMX-Sheet hochladen", type=["pdf", "png", "jpg", "jpeg", "webp"])
+if "fixture_json" not in st.session_state:
+    st.session_state.fixture_json = None
+if "original_fixture_json" not in st.session_state:
+    st.session_state.original_fixture_json = None
 
-if uploaded:
-    st.info(f"Datei geladen: {uploaded.name} ({uploaded.size / 1024:.1f} KB)")
+if uploaded and st.button("🤖 KI analysieren", type="primary"):
+    with st.spinner("KI liest Manual/DMX-Sheet... das kann etwas dauern"):
+        try:
+            data = extract_fixture_json(uploaded, GEMINI_API_KEY, model_name=model)
+            if manufacturer_override:
+                data["manufacturer"] = manufacturer_override
+            if fixture_override:
+                data["fixture_name"] = fixture_override
+            st.session_state.fixture_json = data
+            st.session_state.original_fixture_json = deepcopy(data)
+            st.success("Analyse fertig. Bitte Tabelle prüfen und bei Bedarf korrigieren.")
+        except Exception as e:
+            st.error(f"Analyse fehlgeschlagen: {e}")
 
-    if st.button("🔎 KI analysieren", type="primary"):
-        with st.spinner("KI liest Manual/DMX-Sheet und extrahiert Kanalmap..."):
-            try:
-                data = extract_fixture_with_gemini(
-                    uploaded.getvalue(),
-                    normalize_mime(uploaded),
-                    uploaded.name,
-                    manufacturer_hint=manufacturer_hint,
-                    model_hint=model_hint,
-                    mode_hint=mode_hint,
-                    model=model,
-                )
-                st.session_state["fixture_json"] = data
-                st.success("Analyse fertig")
-            except Exception as e:
-                st.error(str(e))
-                st.stop()
+fixture = st.session_state.fixture_json
 
-fixture = st.session_state.get("fixture_json")
 if fixture:
     st.subheader("1) Erkannte Fixture-Daten")
     c1, c2, c3 = st.columns(3)
-    with c1:
-        fixture["manufacturer"] = st.text_input("Manufacturer", value=fixture.get("manufacturer") or manufacturer_hint or "Unknown")
-    with c2:
-        fixture["fixture_name"] = st.text_input("Fixture Name", value=fixture.get("fixture_name") or model_hint or "Generated Fixture")
-    with c3:
-        fixture["short_name"] = st.text_input("Short Name", value=fixture.get("short_name") or fixture.get("fixture_name", "Fixture")[:16])
+    fixture["manufacturer"] = c1.text_input("Manufacturer", value=fixture.get("manufacturer", ""))
+    fixture["fixture_name"] = c2.text_input("Fixture", value=fixture.get("fixture_name", ""))
+    fixture["notes"] = c3.text_input("Notizen", value=fixture.get("notes", ""))
 
-    notes = fixture.get("notes") or []
-    if notes:
-        with st.expander("KI-Notizen"):
-            for note in notes:
-                st.write("-", note)
+    modes = fixture.get("modes", [])
+    if not modes:
+        st.warning("Keine DMX-Modi erkannt.")
+        st.stop()
 
-    warnings = validate_fixture_json(fixture)
-    if warnings:
-        with st.expander("⚠️ Plausibilitätswarnungen", expanded=True):
-            for w in warnings:
-                st.warning(w)
+    mode_names = [m.get("mode_name", f"Mode {i}") for i, m in enumerate(modes)]
+    selected_mode_name = st.selectbox("DMX-Modus zum Bearbeiten", mode_names)
+    mode_index = mode_names.index(selected_mode_name)
+    mode = modes[mode_index]
 
-    modes = fixture.get("modes") or []
-    if modes:
-        st.subheader("2) Kanalmap prüfen/korrigieren")
-        mode_names = [m.get("name") or f"Mode {i+1}" for i, m in enumerate(modes)]
-        selected_name = st.selectbox("DMX-Modus", mode_names)
-        idx = mode_names.index(selected_name)
-        mode = modes[idx]
-        st.write(f"Erkannte Kanalanzahl: **{mode.get('channel_count')}**")
+    st.subheader("2) Übersicht prüfen und korrigieren")
+    rows = []
+    for ch in mode.get("channels", []):
+        ranges = "; ".join([f"{r.get('from')}-{r.get('to')}: {r.get('name')}" for r in ch.get("ranges", [])])
+        rows.append({
+            "channel": ch.get("channel"),
+            "fixture_part": ch.get("fixture_part", ""),
+            "raw_name": ch.get("raw_name", ""),
+            "attribute": ch.get("attribute", ""),
+            "resolution": ch.get("resolution", ""),
+            "fine_for_channel": ch.get("fine_for_channel"),
+            "default_dmx": ch.get("default_dmx"),
+            "highlight_dmx": ch.get("highlight_dmx"),
+            "ranges": ranges,
+        })
+    df = pd.DataFrame(rows)
+    edited = st.data_editor(df, num_rows="dynamic", use_container_width=True, height=420)
 
-        df = mode_to_df(mode)
-        edited = st.data_editor(
-            df,
-            use_container_width=True,
-            num_rows="dynamic",
-            column_config={
-                "attribute": st.column_config.SelectboxColumn(
-                    "attribute",
-                    options=[
-                        "Dimmer", "Shutter", "Strobe", "Pan", "Tilt", "PanTiltSpeed",
-                        "ColorAdd_R", "ColorAdd_G", "ColorAdd_B", "ColorAdd_W", "ColorMacro",
-                        "Macro", "MacroSpeed", "Reset", "NoFunction", "Gobo", "GoboRotate",
-                        "Prism", "PrismRotate", "Zoom", "Focus", "Frost", "Iris", "Unknown"
-                    ],
-                )
-            }
-        )
+    # write edited table back to selected mode
+    new_channels = []
+    for _, row in edited.iterrows():
+        ranges = []
+        for part in str(row.get("ranges") or "").split(";"):
+            part = part.strip()
+            if not part:
+                continue
+            try:
+                left, name = part.split(":", 1)
+                start, end = left.strip().split("-", 1)
+                ranges.append({"from": int(start), "to": int(end), "name": name.strip(), "type": "step", "comment": ""})
+            except Exception:
+                ranges.append({"from": 0, "to": 255, "name": part, "type": "unknown", "comment": "parse_warning"})
+        try:
+            channel_number = int(row.get("channel"))
+        except Exception:
+            continue
+        new_channels.append({
+            "channel": channel_number,
+            "fixture_part": row.get("fixture_part") or "Base",
+            "raw_name": row.get("raw_name") or row.get("attribute") or "Unknown",
+            "attribute": row.get("attribute") or "Unknown",
+            "resolution": row.get("resolution") or "8bit",
+            "fine_for_channel": None if pd.isna(row.get("fine_for_channel")) or row.get("fine_for_channel") in ("", None) else int(row.get("fine_for_channel")),
+            "default_dmx": 0 if pd.isna(row.get("default_dmx")) or row.get("default_dmx") in ("", None) else int(row.get("default_dmx")),
+            "highlight_dmx": None if pd.isna(row.get("highlight_dmx")) or row.get("highlight_dmx") in ("", None) else int(row.get("highlight_dmx")),
+            "ranges": ranges or [{"from": 0, "to": 255, "name": row.get("raw_name") or "Unknown", "type": "continuous", "comment": ""}],
+        })
+    fixture["modes"][mode_index]["channels"] = new_channels
 
-        if st.button("Änderungen für diesen Modus übernehmen"):
-            fixture["modes"][idx] = df_to_mode(mode, edited)
-            st.session_state["fixture_json"] = fixture
-            st.success("Änderungen übernommen")
+    st.subheader("3) Exportformat wählen")
+    export_format = st.radio("Format", ["GDTF", "Daslight/Wolfmix"], horizontal=True)
 
-        st.subheader("3) Export")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            if st.button("📦 GDTF bauen", type="primary"):
-                # Aktuelle Tabelle automatisch in den Modus zurückschreiben
-                fixture["modes"][idx] = df_to_mode(mode, edited)
-                gdtf_bytes, gdtf_name, description_xml = build_gdtf_package(fixture)
-                csv_bytes = build_channel_csv(fixture)
-                st.session_state["gdtf_bytes"] = gdtf_bytes
-                st.session_state["gdtf_name"] = gdtf_name
-                st.session_state["description_xml"] = description_xml
-                st.session_state["csv_bytes"] = csv_bytes
-                st.success("GDTF erzeugt")
-        with col2:
-            st.download_button(
-                "Download fixture.json",
-                data=json.dumps(fixture, ensure_ascii=False, indent=2).encode("utf-8"),
-                file_name="fixture.json",
-                mime="application/json",
-            )
-        with col3:
-            st.download_button(
-                "Download Kanalmap CSV",
-                data=build_channel_csv(fixture),
-                file_name="channel_map.csv",
-                mime="text/csv",
-            )
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if export_format == "GDTF":
+            gdtf = build_gdtf(fixture)
+            st.download_button("⬇️ GDTF exportieren", data=gdtf, file_name=f"{fixture.get('manufacturer','Unknown')}@{fixture.get('fixture_name','Fixture')}.gdtf".replace(" ", "_"), mime="application/zip")
+        else:
+            dl = build_daslight_wolfmix_placeholder(fixture)
+            st.download_button("⬇️ Daslight/Wolfmix Map exportieren", data=dl, file_name=f"{fixture.get('manufacturer','Unknown')}_{fixture.get('fixture_name','Fixture')}_daslight_wolfmix_map.csv".replace(" ", "_"), mime="text/csv")
+    with col2:
+        csv_bytes = build_channel_csv(fixture)
+        st.download_button("⬇️ Kanalmap CSV", data=csv_bytes, file_name="channel_map.csv", mime="text/csv")
+    with col3:
+        learning = make_learning_record(st.session_state.original_fixture_json or {}, fixture)
+        st.download_button("🧠 Korrektur als Trainingsdaten", data=learning, file_name="learning_correction.json", mime="application/json")
 
-        if st.session_state.get("gdtf_bytes"):
-            st.download_button(
-                "⬇️ Download .gdtf",
-                data=st.session_state["gdtf_bytes"],
-                file_name=st.session_state["gdtf_name"],
-                mime="application/zip",
-                type="primary",
-            )
-            with st.expander("description.xml anzeigen"):
-                st.code(st.session_state["description_xml"].decode("utf-8"), language="xml")
-
-    with st.expander("Rohdaten JSON"):
+    with st.expander("Debug JSON anzeigen"):
         st.json(fixture)
 else:
-    st.markdown("""
-### So benutzt du die App
-1. Manual oder DMX-Sheet als PDF/JPG/PNG hochladen.  
-2. Hersteller/Modell optional eintragen.  
-3. **KI analysieren** klicken.  
-4. Kanalmap prüfen und korrigieren.  
-5. **GDTF bauen** klicken und Datei herunterladen.  
+    st.info("Lade ein Manual oder ein Bild vom DMX-Sheet hoch und klicke auf KI analysieren.")
 
-Hinweis: Das ist ein MVP. Die erzeugte GDTF sollte danach im GDTF Builder oder grandMA3 getestet werden.
-""")
+st.divider()
+st.caption("MVP Hinweis: GDTF-Export ist Best-Effort und sollte in GDTF Builder / grandMA3 getestet werden. Daslight/Wolfmix ist zunächst eine saubere Kanalmap für den manuellen Fixture-Aufbau; nativer Export kann später ergänzt werden.")
