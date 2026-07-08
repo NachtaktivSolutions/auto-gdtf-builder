@@ -38,7 +38,7 @@ def parse_jsonl(text: str) -> list[dict[str, Any]]:
     return out
 
 def build_knowledge_context(records: list[dict[str, Any]], manual_rules: str = "", max_records: int = 5) -> str:
-    """Condense confirmed corrections into prompt context. This is prompt-training, not fine-tuning."""
+    """Condense confirmed corrections/reference fixtures into prompt context. This is prompt-training, not fine-tuning."""
     parts: list[str] = []
     if manual_rules.strip():
         parts.append("MANUELLE REGELN:\n" + manual_rules.strip())
@@ -46,6 +46,9 @@ def build_knowledge_context(records: list[dict[str, Any]], manual_rules: str = "
     if records:
         parts.append("BESTÄTIGTE KORREKTURBEISPIELE:")
         for i, rec in enumerate(records[-max_records:], start=1):
+            if rec.get("type") == "gdtf_reference":
+                parts.append("REFERENZ-TRAINING " + str(i) + ":\n" + json.dumps(rec.get("gdtf_reference", {}), ensure_ascii=False, indent=2)[:12000])
+                continue
             corrected = rec.get("corrected_fixture", {})
             mf = corrected.get("manufacturer") or rec.get("manufacturer", "")
             fx = corrected.get("fixture_name") or rec.get("fixture_name", "")
@@ -53,7 +56,7 @@ def build_knowledge_context(records: list[dict[str, Any]], manual_rules: str = "
             modes = corrected.get("modes", [])
             sample_channels = []
             if modes:
-                for ch in modes[0].get("channels", [])[:12]:
+                for ch in modes[0].get("channels", [])[:20]:
                     sample_channels.append({
                         "channel": ch.get("channel"),
                         "name": ch.get("name"),

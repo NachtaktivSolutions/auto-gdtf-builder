@@ -8,6 +8,7 @@ from fixtureforge.schema import Fixture, Channel, ValueRange
 from fixtureforge.gdtf_builder import build_gdtf
 from fixtureforge.export_csv import fixture_to_channel_csv
 from fixtureforge.learning import make_training_record, records_to_jsonl, parse_jsonl, build_knowledge_context
+from fixtureforge.gdtf_reference import parse_gdtf_reference
 
 st.set_page_config(page_title="FixtureForge AI", page_icon="💡", layout="wide")
 st.title("💡 FixtureForge AI")
@@ -24,7 +25,7 @@ with st.sidebar:
     st.header("Projekt")
     manufacturer_hint = st.text_input("Hersteller Hinweis", "")
     fixture_hint = st.text_input("Modell Hinweis", "")
-    model = st.selectbox("KI Modell", ["gemini-2.0-flash", "gemini-1.5-flash"], index=0)
+    model = st.selectbox("KI Modell", ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"], index=0)
     st.divider()
     st.header("Lernen")
     kb_file = st.file_uploader("Trainingsdaten importieren (.jsonl)", type=["jsonl"], key="kb_upload")
@@ -38,6 +39,27 @@ with st.sidebar:
         placeholder="Beispiel: Bei Eurolite 'Geschwindigkeit PAN/TILT' immer als PanTiltSpeed mappen. Reset 231-249 als Reset snap=true.",
         height=120,
     )
+
+    st.divider()
+    st.header("Referenz-Training")
+    st.caption("Hier kannst du eine funktionierende GDTF als Beispiel hochladen. Die App liest daraus Mapping/Attribute und nutzt es beim nächsten KI-Lauf als Kontext.")
+    ref_gdtf = st.file_uploader("Funktionierende GDTF hochladen", type=["gdtf"], key="ref_gdtf")
+    ref_note = st.text_input("Referenz-Notiz", placeholder="z. B. Eurolite B240 funktionierende 48CH GDTF")
+    if ref_gdtf is not None and st.button("GDTF-Referenz als Training merken"):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".gdtf") as f:
+            f.write(ref_gdtf.getvalue())
+            ref_path = f.name
+        try:
+            ref = parse_gdtf_reference(ref_path)
+            st.session_state.training_records.append({
+                "type": "gdtf_reference",
+                "note": ref_note,
+                "gdtf_reference": ref,
+            })
+            st.success("GDTF-Referenz gespeichert. Sie wird ab der nächsten Analyse als Lernkontext genutzt.")
+        except Exception as e:
+            st.error(f"GDTF konnte nicht gelesen werden: {e}")
+
     if st.session_state.training_records:
         st.caption(f"Aktive Trainingsbeispiele: {len(st.session_state.training_records)}")
         st.download_button(
@@ -62,14 +84,18 @@ if uploaded and st.button("KI Analyse starten", type="primary"):
         tmp = f.name
     knowledge_context = build_knowledge_context(st.session_state.training_records, manual_rules)
     with st.spinner("KI analysiert Manual/DMX-Sheet mit Trainingskontext..."):
-        fixture = extract_fixture_with_gemini(api_key, tmp, model=model, knowledge_context=knowledge_context)
-        if manufacturer_hint:
-            fixture.manufacturer = manufacturer_hint
-        if fixture_hint:
-            fixture.fixture_name = fixture_hint
-        st.session_state.fixture = fixture
-        st.session_state.original = fixture.model_dump()
-    st.success("Analyse fertig.")
+        try:
+            fixture = extract_fixture_with_gemini(api_key, tmp, model=model, knowledge_context=knowledge_context)
+            if manufacturer_hint:
+                fixture.manufacturer = manufacturer_hint
+            if fixture_hint:
+                fixture.fixture_name = fixture_hint
+            st.session_state.fixture = fixture
+            st.session_state.original = fixture.model_dump()
+            st.success("Analyse fertig.")
+        except Exception as e:
+            st.error(str(e))
+            st.stop()
 
 fixture: Fixture | None = st.session_state.fixture
 if fixture:
