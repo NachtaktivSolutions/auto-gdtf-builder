@@ -1,4 +1,4 @@
-# FixtureForge AI v0.10 – Working Streamlit Build
+# Nachtaktiv GDTF Builder v0.11 – Working Streamlit Build
 
 This build is designed to actually start on Streamlit Cloud.
 
@@ -58,3 +58,15 @@ This was added because grandMA3 recognized earlier generated GDTFs as a fixture 
 - Mode names normalized to `4CH`, `8CH`, `13CH`, `15CH`, `23CH`, `27CH`, `40CH`, `48CH`
 - Export filenames generated from the chosen file prefix
 - Keeps the known-working B240 reference export path from v0.9
+
+
+## v0.11 CI / UI Cleanup
+
+- Renamed app to **Nachtaktiv GDTF Builder**
+- Added Nachtaktiv logo assets
+- Added dark CI theme with magenta/purple gradients
+- Added structured 7-step workflow
+- Sidebar branding
+- Clean cards/sections
+- Better export naming
+- Keeps B240 template/export functionality from previous versions

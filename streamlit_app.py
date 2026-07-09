@@ -12,28 +12,41 @@ from providers_openrouter import analyze_text_with_openrouter
 from models_fixture import normalize_fixture, fixture_to_json_bytes
 from exporters import mode_to_dataframe, fixture_to_csv_bytes, build_simple_gdtf
 from naming import default_display_names, apply_fixture_names, polish_fixture_labels, clean_filename
+from branding import inject_brand_css, render_sidebar_logo, render_hero, section_header, open_card, close_card
 
 
-st.set_page_config(page_title=APP_NAME, page_icon="💡", layout="wide")
-st.title(f"💡 {APP_NAME}")
-st.caption(f"v{APP_VERSION} · naming polish · B240 reference export · editable display names")
+st.set_page_config(
+    page_title=APP_NAME,
+    page_icon="💜",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+inject_brand_css()
 
 with st.sidebar:
-    st.header("Settings")
-    st.write("Provider: OpenRouter optional")
-    model = st.text_input("OpenRouter model", value=OPENROUTER_MODEL)
-    max_pages = st.slider("Max PDF pages", 1, 30, 9)
-    ocr_lang = st.text_input("OCR language", value="deu+eng")
-    st.success("OPENROUTER_API_KEY found") if OPENROUTER_API_KEY else st.warning("OpenRouter key missing. Built-in B240 template still works.")
-    st.caption("Free text model example: mistralai/mistral-small-3.2-24b-instruct:free")
+    render_sidebar_logo()
+    st.markdown("### Einstellungen")
+    st.caption("OpenRouter ist optional. Der B240 läuft auch ohne KI.")
+    model = st.text_input("OpenRouter Modell", value=OPENROUTER_MODEL)
+    max_pages = st.slider("Max. PDF-Seiten", 1, 30, 9)
+    ocr_lang = st.text_input("OCR Sprache", value="deu+eng")
+    if OPENROUTER_API_KEY:
+        st.success("OPENROUTER_API_KEY gefunden")
+    else:
+        st.warning("Kein OpenRouter-Key. B240 Template funktioniert trotzdem.")
+    st.divider()
+    st.caption("Empfohlenes Free-Modell:")
+    st.code("mistralai/mistral-small-3.2-24b-instruct:free")
 
-uploaded = st.file_uploader("PDF, JPG, JPEG or PNG", type=["pdf", "jpg", "jpeg", "png"])
-extra_context = st.text_area("Optional context / rules", height=80)
-manual_text_fallback = st.text_area("Fallback: paste manual/OCR text here", height=140)
+render_hero(APP_VERSION)
 
-use_b240_template = st.checkbox("Force built-in Eurolite LED TMH Bar B240 template", value=False)
-use_ocr = st.checkbox("Run local Tesseract OCR if no embedded text is found", value=True)
-use_ai = st.checkbox("Use OpenRouter AI for generic fixture analysis", value=True)
+uploaded = None
+extra_context = ""
+manual_text_fallback = ""
+use_b240_template = False
+use_ocr = True
+use_ai = True
 
 if "fixture" not in st.session_state:
     st.session_state.fixture = None
@@ -41,6 +54,7 @@ if "manual_text" not in st.session_state:
     st.session_state.manual_text = ""
 if "images" not in st.session_state:
     st.session_state.images = []
+
 
 def load_file(uploaded_file):
     if uploaded_file is None:
@@ -53,15 +67,49 @@ def load_file(uploaded_file):
         return text, images
     return "", [(uploaded_file.name, image_to_png_bytes(raw))]
 
-if uploaded:
-    st.write(f"Uploaded: `{uploaded.name}` · {uploaded.size/1024:.1f} KB")
 
-if st.button("Analyze", type="primary"):
+# SECTION 1
+open_card()
+section_header(
+    1,
+    "Manual hochladen",
+    "PDF, JPG oder PNG. Bei bildbasierten PDFs kann Tesseract-OCR automatisch mitlaufen.",
+)
+uploaded = st.file_uploader("Manual / DMX-Sheet", type=["pdf", "jpg", "jpeg", "png"], label_visibility="collapsed")
+if uploaded:
+    st.success(f"Upload erkannt: {uploaded.name} · {uploaded.size/1024:.1f} KB")
+col_a, col_b = st.columns([2, 1])
+with col_a:
+    extra_context = st.text_area(
+        "Optionale Regeln / Kontext",
+        placeholder="Beispiel: Eurolite Fixture, bevorzugt 48CH, Köpfe als Head 1–4 darstellen.",
+        height=90,
+    )
+with col_b:
+    use_b240_template = st.checkbox("B240 Template erzwingen", value=False)
+    use_ocr = st.checkbox("OCR nutzen, wenn kein PDF-Text vorhanden ist", value=True)
+    use_ai = st.checkbox("OpenRouter KI für generische Analyse nutzen", value=True)
+
+manual_text_fallback = st.text_area(
+    "Fallback: Manual-/OCR-Text einfügen",
+    placeholder="Wenn das PDF nur aus Bildern besteht oder du eine Tabelle kopiert hast, Text hier einfügen.",
+    height=120,
+)
+close_card()
+
+# SECTION 2
+open_card()
+section_header(
+    2,
+    "Analyse",
+    "FixtureForge liest die Datei, erkennt den B240 automatisch oder nutzt OpenRouter für generische Fixtures.",
+)
+if st.button("Analyse starten", type="primary", use_container_width=True):
     try:
         text = ""
         images = []
         if uploaded:
-            with st.spinner("Reading file..."):
+            with st.spinner("Datei wird gelesen..."):
                 text, images = load_file(uploaded)
                 st.session_state.images = images
 
@@ -69,68 +117,93 @@ if st.button("Analyze", type="primary"):
             text = manual_text_fallback.strip()
 
         if use_b240_template or looks_like_b240(uploaded.name if uploaded else "", text):
-            st.session_state.fixture = polish_fixture_labels(build_b240_fixture())
-            st.success("Built-in Eurolite LED TMH Bar B240 template loaded and naming polished.")
+            fixture = polish_fixture_labels(build_b240_fixture())
+            fixture = apply_fixture_names(fixture, default_display_names(fixture))
+            st.session_state.fixture = fixture
+            st.session_state.manual_text = text
+            st.success("Eurolite LED TMH Bar B240 erkannt. Template geladen und Namen bereinigt.")
         else:
             if not text.strip() and use_ocr and images:
-                with st.spinner("No embedded text found. Running local Tesseract OCR..."):
+                with st.spinner("Kein eingebetteter Text gefunden. Tesseract-OCR läuft..."):
                     text = ocr_images(images, lang=ocr_lang)
             st.session_state.manual_text = text
 
             if not text.strip():
-                st.warning("No text found. Try OCR, paste text into fallback, or use a model/API with image support.")
+                st.warning("Kein Text gefunden. Nutze OCR, füge Text im Fallback-Feld ein oder nutze später ein Vision-Modell.")
             elif use_ai:
-                with st.spinner("Analyzing text with OpenRouter..."):
+                with st.spinner("OpenRouter analysiert die DMX-Daten..."):
                     raw = analyze_text_with_openrouter(text, model=model, extra_context=extra_context)
-                    st.session_state.fixture = polish_fixture_labels(normalize_fixture(raw))
-                st.success("AI analysis complete.")
+                    fixture = polish_fixture_labels(normalize_fixture(raw))
+                    fixture = apply_fixture_names(fixture, default_display_names(fixture))
+                    st.session_state.fixture = fixture
+                st.success("KI-Analyse abgeschlossen.")
             else:
-                st.info("Text extracted. Enable OpenRouter AI or use a built-in fixture template.")
+                st.info("Text extrahiert. Aktiviere OpenRouter-KI oder nutze ein Template.")
     except Exception as exc:
         st.error(str(exc))
-        with st.expander("Debug traceback"):
+        with st.expander("Debug Traceback"):
             st.code(traceback.format_exc())
+close_card()
 
 if st.session_state.images:
-    with st.expander("Preview pages/images"):
+    open_card()
+    section_header(3, "Vorschau", "Gerenderte PDF-Seiten oder Bildvorschau.")
+    with st.expander("Seiten/Bilder anzeigen", expanded=False):
         cols = st.columns(3)
         for idx, (name, img) in enumerate(st.session_state.images[:9]):
             with cols[idx % 3]:
                 st.image(img, caption=name, use_container_width=True)
+    close_card()
 
 if st.session_state.manual_text:
-    with st.expander("Extracted/OCR text"):
-        st.text_area("Text", st.session_state.manual_text, height=300)
+    open_card()
+    section_header(4, "Extrahierter Text", "Textbasis, die für die KI-Analyse verwendet wurde.")
+    with st.expander("Text anzeigen", expanded=False):
+        st.text_area("Text", st.session_state.manual_text, height=280, label_visibility="collapsed")
+    close_card()
 
 fixture = st.session_state.fixture
+
 if fixture:
-    st.subheader("Fixture")
+    open_card()
+    section_header(5, "Fixture Daten", "Benennung für MA3, Exportdateien und Fixture Library bereinigen.")
     c1, c2, c3 = st.columns(3)
     with c1:
-        fixture["manufacturer"] = st.text_input("Manufacturer", fixture.get("manufacturer") or "")
+        st.metric("Hersteller", fixture.get("manufacturer") or "-")
     with c2:
-        fixture["fixture_name"] = st.text_input("Fixture name", fixture.get("fixture_name") or "")
+        st.metric("Fixture", fixture.get("fixture_name") or "-")
     with c3:
-        st.metric("Modes", len(fixture.get("modes", [])))
+        st.metric("Modi", len(fixture.get("modes", [])))
 
-    st.subheader("Naming")
     defaults = default_display_names(fixture)
-    names = {
-        "manufacturer": st.text_input("GDTF Manufacturer", fixture.get("manufacturer") or defaults["manufacturer"], key="name_manufacturer"),
-        "fixture_name": st.text_input("GDTF Fixture Name", fixture.get("fixture_name") or defaults["fixture_name"], key="name_fixture"),
-        "short_name": st.text_input("Short Name", fixture.get("short_name") or defaults["short_name"], key="name_short"),
-        "long_name": st.text_input("Long Name", fixture.get("long_name") or defaults["long_name"], key="name_long"),
-        "file_prefix": st.text_input("Export file prefix", fixture.get("file_prefix") or defaults["file_prefix"], key="name_file"),
-    }
-    fixture = apply_fixture_names(fixture, names)
-    st.session_state.fixture = fixture
+    n1, n2 = st.columns(2)
+    with n1:
+        manufacturer = st.text_input("GDTF Manufacturer", fixture.get("manufacturer") or defaults["manufacturer"])
+        fixture_name = st.text_input("GDTF Fixture Name", fixture.get("fixture_name") or defaults["fixture_name"])
+        short_name = st.text_input("Short Name", fixture.get("short_name") or defaults["short_name"])
+    with n2:
+        long_name = st.text_input("Long Name", fixture.get("long_name") or defaults["long_name"])
+        file_prefix = st.text_input("Export-Dateiname", fixture.get("file_prefix") or defaults["file_prefix"])
+        st.caption("Der Dateiname wird automatisch sicher formatiert, z. B. ohne Leerzeichen/Sonderzeichen.")
 
-    st.subheader("Review Channels")
+    fixture = apply_fixture_names(fixture, {
+        "manufacturer": manufacturer,
+        "fixture_name": fixture_name,
+        "short_name": short_name,
+        "long_name": long_name,
+        "file_prefix": file_prefix,
+    })
+    st.session_state.fixture = fixture
+    close_card()
+
+    open_card()
+    section_header(6, "Kanäle prüfen", "Modi aufklappen, Kanäle korrigieren und danach exportieren.")
+    mode_names = [f"{m.get('name')} · {m.get('channel_count')} CH" for m in fixture.get("modes", [])]
+    selected = st.selectbox("Schnellauswahl Modus", options=list(range(len(mode_names))), format_func=lambda i: mode_names[i] if mode_names else "-", index=max(0, len(mode_names)-1))
     for i, mode in enumerate(fixture.get("modes", [])):
-        with st.expander(f"{mode.get('name')} · {mode.get('channel_count')} CH", expanded=(mode.get("name") == "48CH")):
+        with st.expander(f"{mode.get('name')} · {mode.get('channel_count')} CH", expanded=(i == selected)):
             df = mode_to_dataframe(mode)
             edited = st.data_editor(df, use_container_width=True, num_rows="dynamic", key=f"editor_{i}")
-            # Simple writeback without parsing ranges from table text
             new_channels = []
             for _, row in edited.iterrows():
                 try:
@@ -155,18 +228,48 @@ if fixture:
                     "ranges": old.get("ranges", []),
                 })
             mode["channels"] = new_channels
+    close_card()
 
-    st.subheader("Export")
-    col_a, col_b, col_c = st.columns(3)
-    with col_a:
-        st.download_button("Download JSON", fixture_to_json_bytes(fixture), f"{clean_filename(fixture.get('file_prefix') or 'fixtureforge_fixture')}.json", "application/json")
-    with col_b:
-        st.download_button("Download Daslight/Wolfmix CSV", fixture_to_csv_bytes(fixture), f"{clean_filename(fixture.get('file_prefix') or 'fixtureforge')}_channel_map.csv", "text/csv")
-    with col_c:
-        st.download_button("Download MA3-tested/reference .gdtf", build_simple_gdtf(fixture), "fixtureforge_basic.gdtf", "application/octet-stream")
-        st.caption("v0.9: for B240, exports the reference GDTF structure you uploaded. Generic fixtures still use the fallback exporter.")
+    open_card()
+    section_header(7, "Export", "GDTF für MA3, CSV für Daslight/Wolfmix oder JSON als universelle FixtureForge-Datei.")
+    prefix = clean_filename(fixture.get("file_prefix") or "Nachtaktiv_GDTF_Builder")
+    e1, e2, e3 = st.columns(3)
+    with e1:
+        st.download_button(
+            "JSON herunterladen",
+            fixture_to_json_bytes(fixture),
+            f"{prefix}.json",
+            "application/json",
+            use_container_width=True,
+        )
+    with e2:
+        st.download_button(
+            "CSV herunterladen",
+            fixture_to_csv_bytes(fixture),
+            f"{prefix}_channel_map.csv",
+            "text/csv",
+            use_container_width=True,
+        )
+    with e3:
+        st.download_button(
+            "GDTF herunterladen",
+            build_simple_gdtf(fixture),
+            f"{prefix}.gdtf",
+            "application/octet-stream",
+            use_container_width=True,
+        )
 
     with st.expander("Raw Fixture JSON"):
         st.json(fixture)
+    close_card()
+
 else:
-    st.info("Upload a manual, then click Analyze. For B240, the built-in template will load automatically.")
+    open_card()
+    section_header(3, "Bereit", "Lade ein Manual hoch und starte die Analyse. Beim B240 wird automatisch das Template geladen.")
+    st.info("Noch keine Fixture geladen.")
+    close_card()
+
+st.markdown(
+    '<div class="nas-footer">Nachtaktiv Solutions GmbH · GDTF Builder · FixtureForge Engine</div>',
+    unsafe_allow_html=True,
+)
