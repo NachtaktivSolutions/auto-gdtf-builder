@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import traceback
-import time
 import pandas as pd
 import streamlit as st
 
@@ -30,36 +29,33 @@ def init_state():
     st.session_state.setdefault("fixture", None)
     st.session_state.setdefault("manual_text", "")
     st.session_state.setdefault("images", [])
-    st.session_state.setdefault("reset_nonce", str(time.time_ns()))
+    st.session_state.setdefault("reset_id", 0)
 
 
 def hard_reset():
-    # Full state clear plus new widget nonce. This is the reliable way to clear st.file_uploader.
-    new_nonce = str(time.time_ns())
-    try:
-        st.cache_data.clear()
-    except Exception:
-        pass
-    try:
-        st.cache_resource.clear()
-    except Exception:
-        pass
-
-    st.session_state.clear()
-    st.session_state["fixture"] = None
-    st.session_state["manual_text"] = ""
-    st.session_state["images"] = []
-    st.session_state["reset_nonce"] = new_nonce
-
-    # Touch query params as an additional frontend remount signal.
-    try:
-        st.query_params["reset"] = new_nonce
-    except Exception:
-        pass
+    # Incrementing reset_id changes widget keys, which clears file_uploader too.
+    old_reset_id = st.session_state.get("reset_id", 0)
+    for key in list(st.session_state.keys()):
+        if (
+            key.startswith("upload_")
+            or key.startswith("ctx_")
+            or key.startswith("fallback_")
+            or key.startswith("b240_")
+            or key.startswith("ocr_")
+            or key.startswith("ai_")
+            or key.startswith("editor_")
+            or key.startswith("mode_select_")
+            or key.startswith("name_")
+        ):
+            del st.session_state[key]
+    st.session_state.fixture = None
+    st.session_state.manual_text = ""
+    st.session_state.images = []
+    st.session_state.reset_id = old_reset_id + 1
 
 
 init_state()
-rid = st.session_state.reset_nonce
+rid = st.session_state.reset_id
 
 with st.sidebar:
     render_sidebar_logo()
@@ -73,16 +69,16 @@ with st.sidebar:
     else:
         st.warning("Kein OpenRouter-Key. B240 Template funktioniert trotzdem.")
     st.divider()
-    if st.button("Komplett zurücksetzen", use_container_width=True, key="sidebar_reset"):
+    if st.button("Reset / Neu starten", use_container_width=True, key="sidebar_reset"):
         hard_reset()
         st.rerun()
-    st.caption("Löscht Upload, Analyse, Tabellen und Exportdaten. Falls der Browser trotzdem die alte Datei zeigt: Seite einmal neu laden.")
+    st.caption("Löscht Upload, Analyse, Tabellen und Exportdaten.")
 
 render_hero(APP_VERSION)
 
 top_cols = st.columns([1, 0.22])
 with top_cols[1]:
-    if st.button("Reset / Neu", use_container_width=True, key="top_reset"):
+    if st.button("Reset", use_container_width=True, key="top_reset"):
         hard_reset()
         st.rerun()
 
@@ -105,19 +101,15 @@ with st.container(border=True):
         "Manual hochladen",
         "PDF, JPG oder PNG. Bei bildbasierten PDFs kann Tesseract-OCR automatisch mitlaufen.",
     )
-    st.markdown("**Datei auswählen oder hier ablegen**")
     uploaded = st.file_uploader(
-        "Manual / DMX-Sheet hochladen",
+        "Manual / DMX-Sheet",
         type=["pdf", "jpg", "jpeg", "png"],
         label_visibility="collapsed",
         help="Manual oder DMX-Tabelle hier ablegen.",
-        key=f"upload_widget_{rid}",
+        key=f"upload_{rid}",
     )
     if uploaded:
-        st.markdown(
-            f'<div class="nas-upload-status"><span>Upload erkannt:</span> {uploaded.name} · {uploaded.size/1024:.1f} KB</div>',
-            unsafe_allow_html=True,
-        )
+        st.success(f"Upload erkannt: {uploaded.name} · {uploaded.size/1024:.1f} KB")
 
     col_left, col_right = st.columns([2.1, 1])
     with col_left:

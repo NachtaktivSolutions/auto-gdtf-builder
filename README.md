@@ -1,4 +1,4 @@
-# Nachtaktiv GDTF Builder v0.15 – Working Streamlit Build
+# Nachtaktiv GDTF Builder v0.14 – Working Streamlit Build
 
 This build is designed to actually start on Streamlit Cloud.
 
@@ -34,7 +34,7 @@ streamlit_app.py
 ```
 
 
-## v0.15 GDTF exporter changes
+## v0.14 GDTF exporter changes
 
 - Adds GDTF AttributeDefinitions
 - Maps FixtureForge attributes to GDTF attributes
@@ -43,7 +43,7 @@ streamlit_app.py
 - Adds ChannelFunctions and ChannelSets for DMX value ranges
 
 
-## v0.15 Reference GDTF mode
+## v0.14 Reference GDTF mode
 
 For Eurolite LED TMH Bar B240 the app now exports a bundled reference GDTF:
 `templates/eurolite_led_tmh_bar_b240_reference.gdtf`
@@ -51,16 +51,16 @@ For Eurolite LED TMH Bar B240 the app now exports a bundled reference GDTF:
 This was added because grandMA3 recognized earlier generated GDTFs as a fixture shell but did not show useful parts/subfixtures. The reference template contains the more complete geometry / model / attribute / DMX mode structure.
 
 
-## v0.15 Naming Polish
+## v0.14 Naming Polish
 
 - Editable manufacturer / fixture name / short name / long name / export file prefix
 - B240 channel labels normalized to `Head 1 Pan`, `Head 1 Dimmer`, etc.
 - Mode names normalized to `4CH`, `8CH`, `13CH`, `15CH`, `23CH`, `27CH`, `40CH`, `48CH`
 - Export filenames generated from the chosen file prefix
-- Keeps the known-working B240 reference export path from v0.15
+- Keeps the known-working B240 reference export path from v0.14
 
 
-## v0.15 CI / UI Cleanup
+## v0.14 CI / UI Cleanup
 
 - Renamed app to **Nachtaktiv GDTF Builder**
 - Added Nachtaktiv logo assets
@@ -72,7 +72,7 @@ This was added because grandMA3 recognized earlier generated GDTFs as a fixture 
 - Keeps B240 template/export functionality from previous versions
 
 
-## v0.15 Clean Background + Readability
+## v0.14 Clean Background + Readability
 
 - App keeps Nachtaktiv CI but uses exactly one background image: `assets/background.png`
 - Logo is separate: `assets/nachtaktiv_logo.png`
@@ -82,7 +82,7 @@ This was added because grandMA3 recognized earlier generated GDTFs as a fixture 
 - Same B240/GDTF functionality as before
 
 
-## v0.15 Clean UI
+## v0.14 Clean UI
 
 - Broken fake card wrappers removed
 - Real Streamlit bordered containers used
@@ -94,7 +94,7 @@ This was added because grandMA3 recognized earlier generated GDTFs as a fixture 
 - Same B240/GDTF functionality as before
 
 
-## v0.15 Upload + Reset Fix
+## v0.14 Upload + Reset Fix
 
 - File uploader contrast fixed after a file is uploaded
 - Uploader dropzone alignment improved
@@ -102,12 +102,3 @@ This was added because grandMA3 recognized earlier generated GDTFs as a fixture 
 - Reset clears upload, text fields, checkboxes, editors, fixture state and export state
 - Background remains one clean image: `assets/background.png`
 - Logo remains one file: `assets/nachtaktiv_logo.png`
-
-
-## v0.15 Final uploader/reset fix
-
-- Upload button and dropzone now have forced high-contrast styling
-- Streamlit's internal selected-file pill is hidden because it is unreliable in dark themes
-- App shows its own readable upload status below the uploader
-- Reset now uses a full `st.session_state.clear()` and a new timestamp-based widget key
-- Reset also touches query params to force the frontend to remount widgets
