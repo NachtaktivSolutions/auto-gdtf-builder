@@ -1,8 +1,5 @@
-streamlit>=1.36.0
-pandas>=2.0.0
-google-genai>=0.3.0
-pydantic>=2.7.0
-lxml>=5.2.0
-Pillow>=10.0.0
-
-PyMuPDF>=1.24.0
+streamlit>=1.36
+requests>=2.31
+pandas>=2.0
+Pillow>=10.0
+pymupdf>=1.24.0
