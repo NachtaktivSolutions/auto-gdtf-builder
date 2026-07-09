@@ -13,8 +13,8 @@ class OpenRouterError(RuntimeError):
     pass
 
 
-def analyze_ocr_text_with_openrouter(
-    ocr_text: str,
+def analyze_text_with_openrouter(
+    manual_text: str,
     model: str | None = None,
     extra_context: str = "",
     timeout_seconds: int = 120,
@@ -22,11 +22,11 @@ def analyze_ocr_text_with_openrouter(
     if not OPENROUTER_API_KEY:
         raise OpenRouterError("OPENROUTER_API_KEY is missing in Streamlit Secrets.")
 
-    if not ocr_text.strip():
-        raise OpenRouterError("OCR produced no text. Try a clearer image or fewer/larger PDF pages.")
+    if not manual_text.strip():
+        raise OpenRouterError("No text available. Use a text-based PDF or paste OCR/manual text into the fallback field.")
 
     selected_model = model or DEFAULT_OPENROUTER_MODEL
-    prompt = USER_PROMPT_TEMPLATE.format(extra_context=extra_context.strip(), ocr_text=ocr_text)
+    prompt = USER_PROMPT_TEMPLATE.format(extra_context=extra_context.strip(), manual_text=manual_text)
 
     payload = {
         "model": selected_model,
@@ -56,10 +56,7 @@ def analyze_ocr_text_with_openrouter(
         raise OpenRouterError(f"OpenRouter error {response.status_code}: {response.text[:2500]}")
 
     data = response.json()
-    try:
-        text = data["choices"][0]["message"]["content"]
-    except Exception as exc:
-        raise OpenRouterError(f"Unexpected OpenRouter response: {json.dumps(data)[:2000]}") from exc
+    text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
     try:
         return json.loads(text)

@@ -36,46 +36,43 @@ def normalize_fixture(data: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(data.get("physical"), dict):
         fixture["physical"].update(data["physical"])
 
-    modes = data.get("modes", [])
-    if isinstance(modes, list):
-        for mode in modes:
-            if not isinstance(mode, dict):
+    for mode in data.get("modes", []) or []:
+        if not isinstance(mode, dict):
+            continue
+        m = {
+            "name": str(mode.get("name") or "Unknown"),
+            "channel_count": _to_int(mode.get("channel_count"), 0),
+            "confidence": _to_float(mode.get("confidence"), 0),
+            "channels": [],
+        }
+        for ch in mode.get("channels", []) or []:
+            if not isinstance(ch, dict):
                 continue
-            m = {
-                "name": str(mode.get("name") or "Unknown"),
-                "channel_count": _to_int(mode.get("channel_count"), 0),
-                "confidence": _to_float(mode.get("confidence"), 0),
-                "channels": [],
-            }
-            for ch in mode.get("channels", []) or []:
-                if not isinstance(ch, dict):
-                    continue
-                channel_no = _to_int(ch.get("channel"), None)
-                if channel_no is None:
-                    continue
-                ranges = []
-                for r in ch.get("ranges", []) or []:
-                    if not isinstance(r, dict):
-                        continue
+            channel_no = _to_int(ch.get("channel"), None)
+            if channel_no is None:
+                continue
+            ranges = []
+            for r in ch.get("ranges", []) or []:
+                if isinstance(r, dict):
                     ranges.append({
                         "from": _to_int(r.get("from"), 0),
                         "to": _to_int(r.get("to"), 255),
                         "name": str(r.get("name") or ""),
                         "description": str(r.get("description") or ""),
                     })
-                m["channels"].append({
-                    "channel": channel_no,
-                    "fine_channel": _to_int(ch.get("fine_channel"), None),
-                    "attribute": str(ch.get("attribute") or "Unknown"),
-                    "raw_label": str(ch.get("raw_label") or ""),
-                    "raw_description": str(ch.get("raw_description") or ""),
-                    "geometry": ch.get("geometry"),
-                    "default_value": _to_int(ch.get("default_value"), None),
-                    "highlight_value": _to_int(ch.get("highlight_value"), None),
-                    "ranges": ranges,
-                })
-            m["channels"].sort(key=lambda x: x["channel"])
-            fixture["modes"].append(m)
+            m["channels"].append({
+                "channel": channel_no,
+                "fine_channel": _to_int(ch.get("fine_channel"), None),
+                "attribute": str(ch.get("attribute") or "Unknown"),
+                "raw_label": str(ch.get("raw_label") or ""),
+                "raw_description": str(ch.get("raw_description") or ""),
+                "geometry": ch.get("geometry"),
+                "default_value": _to_int(ch.get("default_value"), None),
+                "highlight_value": _to_int(ch.get("highlight_value"), None),
+                "ranges": ranges,
+            })
+        m["channels"].sort(key=lambda x: x["channel"])
+        fixture["modes"].append(m)
 
     if isinstance(data.get("warnings"), list):
         fixture["warnings"].extend([str(w) for w in data["warnings"]])

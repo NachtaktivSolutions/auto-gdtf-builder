@@ -1,9 +1,14 @@
-# FixtureForge AI v0.5 – OCR + OpenRouter Text Model
+# FixtureForge AI v0.6 – Parser-first, no OCR crash
 
-This version removes Gemini and removes Vision-model dependency.
+This version removes Gemini, RapidOCR and OpenCV completely.
 
 Workflow:
-PDF/JPG/PNG → local OCR → extracted DMX text → OpenRouter text model → Universal Fixture JSON → review/export.
+PDF with real text → local PDF text extraction → OpenRouter free text model → Universal Fixture JSON → review/export.
+
+For scanned/image-only PDFs:
+- The app will not crash.
+- It shows page previews.
+- Use the manual text/OCR paste fallback, or later add a paid/free vision model.
 
 ## Streamlit Secrets
 
@@ -17,12 +22,10 @@ Optional:
 OPENROUTER_MODEL = "mistralai/mistral-small-3.2-24b-instruct:free"
 ```
 
-## Recommended free OpenRouter model
-
-Use:
+## Recommended model
 
 ```text
 mistralai/mistral-small-3.2-24b-instruct:free
 ```
 
-If this is unavailable, use any current OpenRouter text model with `:free`, preferably Mistral/Qwen/Llama Instruct.
+If unavailable, use any OpenRouter `:free` text/instruct model.
