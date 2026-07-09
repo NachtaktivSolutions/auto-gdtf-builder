@@ -11,11 +11,12 @@ from b240_template import build_b240_fixture, looks_like_b240
 from providers_openrouter import analyze_text_with_openrouter
 from models_fixture import normalize_fixture, fixture_to_json_bytes
 from exporters import mode_to_dataframe, fixture_to_csv_bytes, build_simple_gdtf
+from naming import default_display_names, apply_fixture_names, polish_fixture_labels, clean_filename
 
 
 st.set_page_config(page_title=APP_NAME, page_icon="💡", layout="wide")
 st.title(f"💡 {APP_NAME}")
-st.caption(f"v{APP_VERSION} · working build · no Gemini · no OpenCV · B240 template included")
+st.caption(f"v{APP_VERSION} · naming polish · B240 reference export · editable display names")
 
 with st.sidebar:
     st.header("Settings")
@@ -68,8 +69,8 @@ if st.button("Analyze", type="primary"):
             text = manual_text_fallback.strip()
 
         if use_b240_template or looks_like_b240(uploaded.name if uploaded else "", text):
-            st.session_state.fixture = build_b240_fixture()
-            st.success("Built-in Eurolite LED TMH Bar B240 template loaded.")
+            st.session_state.fixture = polish_fixture_labels(build_b240_fixture())
+            st.success("Built-in Eurolite LED TMH Bar B240 template loaded and naming polished.")
         else:
             if not text.strip() and use_ocr and images:
                 with st.spinner("No embedded text found. Running local Tesseract OCR..."):
@@ -81,7 +82,7 @@ if st.button("Analyze", type="primary"):
             elif use_ai:
                 with st.spinner("Analyzing text with OpenRouter..."):
                     raw = analyze_text_with_openrouter(text, model=model, extra_context=extra_context)
-                    st.session_state.fixture = normalize_fixture(raw)
+                    st.session_state.fixture = polish_fixture_labels(normalize_fixture(raw))
                 st.success("AI analysis complete.")
             else:
                 st.info("Text extracted. Enable OpenRouter AI or use a built-in fixture template.")
@@ -111,6 +112,18 @@ if fixture:
         fixture["fixture_name"] = st.text_input("Fixture name", fixture.get("fixture_name") or "")
     with c3:
         st.metric("Modes", len(fixture.get("modes", [])))
+
+    st.subheader("Naming")
+    defaults = default_display_names(fixture)
+    names = {
+        "manufacturer": st.text_input("GDTF Manufacturer", fixture.get("manufacturer") or defaults["manufacturer"], key="name_manufacturer"),
+        "fixture_name": st.text_input("GDTF Fixture Name", fixture.get("fixture_name") or defaults["fixture_name"], key="name_fixture"),
+        "short_name": st.text_input("Short Name", fixture.get("short_name") or defaults["short_name"], key="name_short"),
+        "long_name": st.text_input("Long Name", fixture.get("long_name") or defaults["long_name"], key="name_long"),
+        "file_prefix": st.text_input("Export file prefix", fixture.get("file_prefix") or defaults["file_prefix"], key="name_file"),
+    }
+    fixture = apply_fixture_names(fixture, names)
+    st.session_state.fixture = fixture
 
     st.subheader("Review Channels")
     for i, mode in enumerate(fixture.get("modes", [])):
@@ -146,12 +159,12 @@ if fixture:
     st.subheader("Export")
     col_a, col_b, col_c = st.columns(3)
     with col_a:
-        st.download_button("Download JSON", fixture_to_json_bytes(fixture), "fixtureforge_fixture.json", "application/json")
+        st.download_button("Download JSON", fixture_to_json_bytes(fixture), f"{clean_filename(fixture.get('file_prefix') or 'fixtureforge_fixture')}.json", "application/json")
     with col_b:
-        st.download_button("Download Daslight/Wolfmix CSV", fixture_to_csv_bytes(fixture), "fixtureforge_channel_map.csv", "text/csv")
+        st.download_button("Download Daslight/Wolfmix CSV", fixture_to_csv_bytes(fixture), f"{clean_filename(fixture.get('file_prefix') or 'fixtureforge')}_channel_map.csv", "text/csv")
     with col_c:
-        st.download_button("Download basic .gdtf", build_simple_gdtf(fixture), "fixtureforge_basic.gdtf", "application/octet-stream")
-        st.caption("GDTF export is basic; JSON/CSV are the reliable exports in this build.")
+        st.download_button("Download MA3-tested/reference .gdtf", build_simple_gdtf(fixture), "fixtureforge_basic.gdtf", "application/octet-stream")
+        st.caption("v0.9: for B240, exports the reference GDTF structure you uploaded. Generic fixtures still use the fallback exporter.")
 
     with st.expander("Raw Fixture JSON"):
         st.json(fixture)

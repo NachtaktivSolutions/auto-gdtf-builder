@@ -1,7 +1,7 @@
 import streamlit as st
 
 APP_NAME = "FixtureForge AI"
-APP_VERSION = "0.7.0"
+APP_VERSION = "0.10.0"
 
 OPENROUTER_API_KEY = st.secrets.get("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = st.secrets.get("OPENROUTER_MODEL", "mistralai/mistral-small-3.2-24b-instruct:free")
