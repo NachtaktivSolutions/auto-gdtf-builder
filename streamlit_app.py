@@ -32,30 +32,19 @@ def init_state():
     st.session_state.setdefault("reset_id", 0)
 
 
-def hard_reset():
-    # Incrementing reset_id changes widget keys, which clears file_uploader too.
-    old_reset_id = st.session_state.get("reset_id", 0)
-    for key in list(st.session_state.keys()):
-        if (
-            key.startswith("upload_")
-            or key.startswith("ctx_")
-            or key.startswith("fallback_")
-            or key.startswith("b240_")
-            or key.startswith("ocr_")
-            or key.startswith("ai_")
-            or key.startswith("editor_")
-            or key.startswith("mode_select_")
-            or key.startswith("name_")
-        ):
-            del st.session_state[key]
-    st.session_state.fixture = None
-    st.session_state.manual_text = ""
-    st.session_state.images = []
-    st.session_state.reset_id = old_reset_id + 1
+def reset_builder():
+    # Streamlit cannot directly assign None to file_uploader.
+    # The reliable method is changing the uploader key by incrementing reset_id.
+    current_reset_id = st.session_state.get("reset_id", 0)
+    st.session_state.clear()
+    st.session_state["fixture"] = None
+    st.session_state["manual_text"] = ""
+    st.session_state["images"] = []
+    st.session_state["reset_id"] = current_reset_id + 1
 
 
 init_state()
-rid = st.session_state.reset_id
+rid = st.session_state["reset_id"]
 
 with st.sidebar:
     render_sidebar_logo()
@@ -69,8 +58,8 @@ with st.sidebar:
     else:
         st.warning("Kein OpenRouter-Key. B240 Template funktioniert trotzdem.")
     st.divider()
-    if st.button("Reset / Neu starten", use_container_width=True, key="sidebar_reset"):
-        hard_reset()
+    if st.button("Reset / Neu starten", use_container_width=True, key=f"sidebar_reset_{rid}"):
+        reset_builder()
         st.rerun()
     st.caption("Löscht Upload, Analyse, Tabellen und Exportdaten.")
 
@@ -78,8 +67,8 @@ render_hero(APP_VERSION)
 
 top_cols = st.columns([1, 0.22])
 with top_cols[1]:
-    if st.button("Reset", use_container_width=True, key="top_reset"):
-        hard_reset()
+    if st.button("Reset / Neu", use_container_width=True, key=f"top_reset_{rid}"):
+        reset_builder()
         st.rerun()
 
 
@@ -101,6 +90,7 @@ with st.container(border=True):
         "Manual hochladen",
         "PDF, JPG oder PNG. Bei bildbasierten PDFs kann Tesseract-OCR automatisch mitlaufen.",
     )
+    st.markdown("**Datei auswählen oder in das Feld ziehen**")
     uploaded = st.file_uploader(
         "Manual / DMX-Sheet",
         type=["pdf", "jpg", "jpeg", "png"],
@@ -109,7 +99,10 @@ with st.container(border=True):
         key=f"upload_{rid}",
     )
     if uploaded:
-        st.success(f"Upload erkannt: {uploaded.name} · {uploaded.size/1024:.1f} KB")
+        st.markdown(
+            f'<div class="nas-upload-status"><span>Upload erkannt:</span> {uploaded.name} · {uploaded.size/1024:.1f} KB</div>',
+            unsafe_allow_html=True,
+        )
 
     col_left, col_right = st.columns([2.1, 1])
     with col_left:

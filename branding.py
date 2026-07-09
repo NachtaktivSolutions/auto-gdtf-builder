@@ -21,8 +21,6 @@ def inject_brand_css() -> None:
     <style>
     :root {{
         --nas-bg: #08040f;
-        --nas-card: rgba(16, 9, 28, 0.93);
-        --nas-card-2: rgba(21, 12, 36, 0.97);
         --nas-line: rgba(225, 72, 255, 0.34);
         --nas-line-soft: rgba(225, 72, 255, 0.20);
         --nas-purple: #8b1cf6;
@@ -35,8 +33,6 @@ def inject_brand_css() -> None:
         --nas-input-text: #ffffff;
         --nas-input-muted: #b9aecb;
         --nas-table-text: #1b0d29;
-        --nas-uploader-bg: rgba(24, 14, 42, 0.96);
-        --nas-uploader-file: rgba(255,255,255,0.10);
     }}
 
     .stApp {{
@@ -185,11 +181,6 @@ def inject_brand_css() -> None:
         min-height: 42px;
     }}
 
-    .stButton > button:hover, .stDownloadButton > button:hover {{
-        border-color: rgba(255,255,255,.36) !important;
-        transform: translateY(-1px);
-    }}
-
     .stTextInput label, .stTextArea label, .stSelectbox label,
     .stCheckbox label, .stSlider label, .stFileUploader label {{
         color: var(--nas-text) !important;
@@ -245,88 +236,75 @@ def inject_brand_css() -> None:
         font-weight: 700 !important;
     }}
 
-    /* Uploader: dropzone plus uploaded file pill */
-    [data-testid="stFileUploader"] {{
-        width: 100%;
-    }}
-
+    /* Uploader stable styling */
     [data-testid="stFileUploader"] section {{
-        position: relative;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        min-height: 118px !important;
-        padding: 18px !important;
-        background: var(--nas-uploader-bg) !important;
-        border: 2px dashed rgba(255, 85, 239, .68) !important;
-        border-radius: 18px !important;
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+        min-height: 130px !important;
+        padding: 22px !important;
+        background: linear-gradient(135deg, rgba(26,15,45,.98), rgba(36,20,62,.96)) !important;
+        border: 2px dashed rgba(255, 85, 239, .72) !important;
+        border-radius: 20px !important;
+        overflow: visible !important;
     }}
 
     [data-testid="stFileUploader"] section:hover {{
-        border-color: rgba(255, 85, 239, .95) !important;
-        background: rgba(31, 18, 54, .98) !important;
+        border-color: #ff55ef !important;
+        background: linear-gradient(135deg, rgba(33,19,58,.99), rgba(46,25,78,.98)) !important;
     }}
 
     [data-testid="stFileUploader"] section * {{
-        color: var(--nas-text) !important;
-        fill: var(--nas-text) !important;
-    }}
-
-    [data-testid="stFileUploaderDropzoneInstructions"] {{
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 4px !important;
-        text-align: center !important;
-    }}
-
-    [data-testid="stFileUploaderDropzoneInstructions"] span,
-    [data-testid="stFileUploaderDropzoneInstructions"] small {{
-        color: var(--nas-text) !important;
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        fill: #ffffff !important;
+        opacity: 1 !important;
     }}
 
     [data-testid="stFileUploader"] button {{
         background: linear-gradient(135deg, #d127d6, #7f22ff) !important;
         color: white !important;
-        border: 1px solid rgba(255,255,255,.16) !important;
-        border-radius: 12px !important;
-        font-weight: 850 !important;
-    }}
-
-    /* Uploaded file row / pill in different Streamlit versions */
-    [data-testid="stFileUploader"] ul,
-    [data-testid="stFileUploader"] li,
-    [data-testid="stFileUploaderFile"],
-    [data-testid="stFileUploaderFileData"],
-    [data-testid="stFileUploaderFileName"],
-    [data-testid="stFileUploaderFileSize"] {{
-        background: transparent !important;
-        color: var(--nas-text) !important;
-        -webkit-text-fill-color: var(--nas-text) !important;
-    }}
-
-    [data-testid="stFileUploader"] li,
-    [data-testid="stFileUploaderFile"] {{
-        background: var(--nas-uploader-file) !important;
-        border: 1px solid rgba(255,255,255,.20) !important;
+        border: 1px solid rgba(255,255,255,.22) !important;
         border-radius: 14px !important;
-        padding: 10px 12px !important;
-        margin: 6px !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 10px !important;
+        min-width: 170px !important;
+        min-height: 44px !important;
+        font-weight: 900 !important;
     }}
 
-    [data-testid="stFileUploader"] svg {{
-        color: var(--nas-text) !important;
-        fill: var(--nas-text) !important;
+    [data-testid="stFileUploader"] button * {{
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        font-weight: 900 !important;
     }}
 
-    [data-testid="stFileUploader"] [aria-label="Delete"],
-    [data-testid="stFileUploader"] [aria-label="Remove"] {{
-        background: rgba(255,255,255,.08) !important;
-        border: 1px solid rgba(255,255,255,.16) !important;
-        border-radius: 999px !important;
+    /* Uploaded file pill readability */
+    [data-testid="stFileUploaderFile"],
+    [data-testid="stFileUploader"] li {{
+        background: rgba(255,255,255,.12) !important;
+        border: 1px solid rgba(255,255,255,.22) !important;
+        border-radius: 14px !important;
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+    }}
+
+    [data-testid="stFileUploaderFile"] *,
+    [data-testid="stFileUploader"] li * {{
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        opacity: 1 !important;
+    }}
+
+    .nas-upload-status {{
+        margin-top: 12px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(57,217,138,.35);
+        background: rgba(57, 217, 138, .13);
+        color: #ffffff !important;
+        font-weight: 750;
+    }}
+
+    .nas-upload-status span {{
+        color: #39d98a !important;
+        -webkit-text-fill-color: #39d98a !important;
+        font-weight: 900;
     }}
 
     [data-testid="stExpander"] {{
@@ -370,10 +348,6 @@ def inject_brand_css() -> None:
         color: var(--nas-table-text) !important;
         -webkit-text-fill-color: var(--nas-table-text) !important;
         background: #fff !important;
-    }}
-
-    [data-testid="stAlert"] {{
-        border-radius: 14px !important;
     }}
 
     .nas-footer {{
