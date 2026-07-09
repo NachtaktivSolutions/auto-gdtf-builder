@@ -1,5 +1,6 @@
 streamlit>=1.36
-requests>=2.31
 pandas>=2.0
-Pillow>=10.0
 pymupdf>=1.24.0
+Pillow>=10.0
+pytesseract>=0.3.10
+requests>=2.31

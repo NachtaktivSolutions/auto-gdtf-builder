@@ -1,31 +1,34 @@
-# FixtureForge AI v0.6 – Parser-first, no OCR crash
+# FixtureForge AI v0.7 – Working Streamlit Build
 
-This version removes Gemini, RapidOCR and OpenCV completely.
+This build is designed to actually start on Streamlit Cloud.
 
-Workflow:
-PDF with real text → local PDF text extraction → OpenRouter free text model → Universal Fixture JSON → review/export.
+Removed:
+- Gemini
+- RapidOCR
+- OpenCV
+- libGL dependency
 
-For scanned/image-only PDFs:
-- The app will not crash.
-- It shows page previews.
-- Use the manual text/OCR paste fallback, or later add a paid/free vision model.
+Added:
+- System Tesseract via `packages.txt`
+- `pytesseract`
+- Local PDF rendering with PyMuPDF
+- Local OCR fallback
+- Built-in Eurolite LED TMH Bar B240 parser/template
+- Optional OpenRouter text-model analysis
 
 ## Streamlit Secrets
 
+OpenRouter is optional in this version.
+
 ```toml
 OPENROUTER_API_KEY = "sk-or-v1-..."
-```
-
-Optional:
-
-```toml
 OPENROUTER_MODEL = "mistralai/mistral-small-3.2-24b-instruct:free"
 ```
 
-## Recommended model
+If OpenRouter has no free credits/model, the built-in B240 parser still works for the B240 manual.
+
+## Main file path
 
 ```text
-mistralai/mistral-small-3.2-24b-instruct:free
+streamlit_app.py
 ```
-
-If unavailable, use any OpenRouter `:free` text/instruct model.
