@@ -1,7 +1,7 @@
 import streamlit as st
 
 APP_NAME = "Nachtaktiv GDTF Builder"
-APP_VERSION = "0.11.0"
+APP_VERSION = "0.12.0"
 
 OPENROUTER_API_KEY = st.secrets.get("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = st.secrets.get("OPENROUTER_MODEL", "mistralai/mistral-small-3.2-24b-instruct:free")

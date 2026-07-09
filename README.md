@@ -1,4 +1,4 @@
-# Nachtaktiv GDTF Builder v0.11 – Working Streamlit Build
+# Nachtaktiv GDTF Builder v0.12 – Working Streamlit Build
 
 This build is designed to actually start on Streamlit Cloud.
 
@@ -34,7 +34,7 @@ streamlit_app.py
 ```
 
 
-## v0.8 GDTF exporter changes
+## v0.12 GDTF exporter changes
 
 - Adds GDTF AttributeDefinitions
 - Maps FixtureForge attributes to GDTF attributes
@@ -43,7 +43,7 @@ streamlit_app.py
 - Adds ChannelFunctions and ChannelSets for DMX value ranges
 
 
-## v0.9 Reference GDTF mode
+## v0.12 Reference GDTF mode
 
 For Eurolite LED TMH Bar B240 the app now exports a bundled reference GDTF:
 `templates/eurolite_led_tmh_bar_b240_reference.gdtf`
@@ -51,16 +51,16 @@ For Eurolite LED TMH Bar B240 the app now exports a bundled reference GDTF:
 This was added because grandMA3 recognized earlier generated GDTFs as a fixture shell but did not show useful parts/subfixtures. The reference template contains the more complete geometry / model / attribute / DMX mode structure.
 
 
-## v0.10 Naming Polish
+## v0.12 Naming Polish
 
 - Editable manufacturer / fixture name / short name / long name / export file prefix
 - B240 channel labels normalized to `Head 1 Pan`, `Head 1 Dimmer`, etc.
 - Mode names normalized to `4CH`, `8CH`, `13CH`, `15CH`, `23CH`, `27CH`, `40CH`, `48CH`
 - Export filenames generated from the chosen file prefix
-- Keeps the known-working B240 reference export path from v0.9
+- Keeps the known-working B240 reference export path from v0.12
 
 
-## v0.11 CI / UI Cleanup
+## v0.12 CI / UI Cleanup
 
 - Renamed app to **Nachtaktiv GDTF Builder**
 - Added Nachtaktiv logo assets
@@ -70,3 +70,13 @@ This was added because grandMA3 recognized earlier generated GDTFs as a fixture 
 - Clean cards/sections
 - Better export naming
 - Keeps B240 template/export functionality from previous versions
+
+
+## v0.12 Clean Background + Readability
+
+- App keeps Nachtaktiv CI but uses exactly one background image: `assets/background.png`
+- Logo is separate: `assets/nachtaktiv_logo.png`
+- Removed old multiple watermark/background assets
+- All form fields now use bright background + dark text
+- Labels, captions, expanders and data editor readability improved
+- Same B240/GDTF functionality as before
