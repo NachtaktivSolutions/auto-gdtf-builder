@@ -9,10 +9,7 @@ def mode_to_dataframe(mode: Dict[str, Any]) -> pd.DataFrame:
     rows = []
     for ch in mode.get("channels", []):
         ranges = ch.get("ranges") or []
-        if ranges:
-            ranges_txt = " | ".join([f"{r.get('from')}-{r.get('to')}: {r.get('name')}" for r in ranges])
-        else:
-            ranges_txt = ""
+        ranges_txt = " | ".join([f"{r.get('from')}-{r.get('to')}: {r.get('name')}" for r in ranges])
         rows.append({
             "channel": ch.get("channel"),
             "fine_channel": ch.get("fine_channel"),

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 
 def empty_fixture() -> Dict[str, Any]:
@@ -43,39 +43,35 @@ def normalize_fixture(data: Dict[str, Any]) -> Dict[str, Any]:
                 continue
             m = {
                 "name": str(mode.get("name") or "Unknown"),
-                "channel_count": int(mode.get("channel_count") or 0),
-                "confidence": float(mode.get("confidence") or 0),
+                "channel_count": _to_int(mode.get("channel_count"), 0),
+                "confidence": _to_float(mode.get("confidence"), 0),
                 "channels": [],
             }
             for ch in mode.get("channels", []) or []:
                 if not isinstance(ch, dict):
                     continue
-                try:
-                    channel_no = int(ch.get("channel"))
-                except Exception:
+                channel_no = _to_int(ch.get("channel"), None)
+                if channel_no is None:
                     continue
                 ranges = []
                 for r in ch.get("ranges", []) or []:
                     if not isinstance(r, dict):
                         continue
-                    try:
-                        ranges.append({
-                            "from": int(r.get("from", 0)),
-                            "to": int(r.get("to", 255)),
-                            "name": str(r.get("name") or ""),
-                            "description": str(r.get("description") or ""),
-                        })
-                    except Exception:
-                        pass
+                    ranges.append({
+                        "from": _to_int(r.get("from"), 0),
+                        "to": _to_int(r.get("to"), 255),
+                        "name": str(r.get("name") or ""),
+                        "description": str(r.get("description") or ""),
+                    })
                 m["channels"].append({
                     "channel": channel_no,
-                    "fine_channel": _to_int_or_none(ch.get("fine_channel")),
+                    "fine_channel": _to_int(ch.get("fine_channel"), None),
                     "attribute": str(ch.get("attribute") or "Unknown"),
                     "raw_label": str(ch.get("raw_label") or ""),
                     "raw_description": str(ch.get("raw_description") or ""),
                     "geometry": ch.get("geometry"),
-                    "default_value": _to_int_or_none(ch.get("default_value")),
-                    "highlight_value": _to_int_or_none(ch.get("highlight_value")),
+                    "default_value": _to_int(ch.get("default_value"), None),
+                    "highlight_value": _to_int(ch.get("highlight_value"), None),
                     "ranges": ranges,
                 })
             m["channels"].sort(key=lambda x: x["channel"])
@@ -87,13 +83,22 @@ def normalize_fixture(data: Dict[str, Any]) -> Dict[str, Any]:
     return fixture
 
 
-def _to_int_or_none(v):
+def _to_int(v, default):
     if v is None or v == "":
-        return None
+        return default
     try:
-        return int(v)
+        return int(float(v))
     except Exception:
-        return None
+        return default
+
+
+def _to_float(v, default):
+    if v is None or v == "":
+        return default
+    try:
+        return float(v)
+    except Exception:
+        return default
 
 
 def fixture_to_json_bytes(fixture: Dict[str, Any]) -> bytes:

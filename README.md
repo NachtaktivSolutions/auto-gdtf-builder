@@ -1,40 +1,28 @@
-# FixtureForge AI v0.4 – OpenRouter Only
+# FixtureForge AI v0.5 – OCR + OpenRouter Text Model
 
-Streamlit MVP for uploading DMX manuals / DMX sheet images and extracting a Universal Fixture JSON using OpenRouter.
+This version removes Gemini and removes Vision-model dependency.
+
+Workflow:
+PDF/JPG/PNG → local OCR → extracted DMX text → OpenRouter text model → Universal Fixture JSON → review/export.
 
 ## Streamlit Secrets
 
-In Streamlit Cloud → App → Settings → Secrets:
-
 ```toml
-OPENROUTER_API_KEY = "your_openrouter_key"
+OPENROUTER_API_KEY = "sk-or-v1-..."
 ```
 
 Optional:
 
 ```toml
-OPENROUTER_MODEL = "qwen/qwen2.5-vl-72b-instruct"
+OPENROUTER_MODEL = "mistralai/mistral-small-3.2-24b-instruct:free"
 ```
 
-## Deploy
+## Recommended free OpenRouter model
 
-Main file path:
+Use:
 
 ```text
-streamlit_app.py
+mistralai/mistral-small-3.2-24b-instruct:free
 ```
 
-## Current features
-
-- PDF/JPG/PNG upload
-- PDF pages are converted to PNG images locally
-- OpenRouter-only analysis
-- Gemini removed completely
-- Universal Fixture JSON output
-- editable channel table
-- export:
-  - JSON
-  - CSV for Daslight/Wolfmix manual fixture creation
-  - basic GDTF package placeholder export
-
-v0.4 focuses on reliable AI extraction and project structure.
+If this is unavailable, use any current OpenRouter text model with `:free`, preferably Mistral/Qwen/Llama Instruct.

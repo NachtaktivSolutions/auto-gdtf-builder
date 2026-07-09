@@ -1,26 +1,20 @@
 from __future__ import annotations
 
-import base64
 import json
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 import requests
 
 from config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL, DEFAULT_OPENROUTER_MODEL, APP_URL
-from prompts import SYSTEM_PROMPT, USER_PROMPT
+from prompts import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 
 
 class OpenRouterError(RuntimeError):
     pass
 
 
-def _image_to_data_url(image_bytes: bytes, mime: str = "image/png") -> str:
-    b64 = base64.b64encode(image_bytes).decode("ascii")
-    return f"data:{mime};base64,{b64}"
-
-
-def analyze_images_with_openrouter(
-    images: List[Tuple[str, bytes]],
+def analyze_ocr_text_with_openrouter(
+    ocr_text: str,
     model: str | None = None,
     extra_context: str = "",
     timeout_seconds: int = 120,
@@ -28,26 +22,19 @@ def analyze_images_with_openrouter(
     if not OPENROUTER_API_KEY:
         raise OpenRouterError("OPENROUTER_API_KEY is missing in Streamlit Secrets.")
 
-    if not images:
-        raise OpenRouterError("No images provided for analysis.")
+    if not ocr_text.strip():
+        raise OpenRouterError("OCR produced no text. Try a clearer image or fewer/larger PDF pages.")
 
     selected_model = model or DEFAULT_OPENROUTER_MODEL
-
-    content = [{"type": "text", "text": USER_PROMPT + "\n\n" + extra_context.strip()}]
-    for name, img_bytes in images:
-        content.append({"type": "text", "text": f"Image: {name}"})
-        content.append({
-            "type": "image_url",
-            "image_url": {"url": _image_to_data_url(img_bytes)}
-        })
+    prompt = USER_PROMPT_TEMPLATE.format(extra_context=extra_context.strip(), ocr_text=ocr_text)
 
     payload = {
         "model": selected_model,
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": content},
+            {"role": "user", "content": prompt},
         ],
-        "temperature": 0.1,
+        "temperature": 0.05,
         "response_format": {"type": "json_object"},
     }
 
@@ -66,16 +53,13 @@ def analyze_images_with_openrouter(
     )
 
     if response.status_code >= 400:
-        raise OpenRouterError(f"OpenRouter error {response.status_code}: {response.text[:2000]}")
+        raise OpenRouterError(f"OpenRouter error {response.status_code}: {response.text[:2500]}")
 
     data = response.json()
     try:
         text = data["choices"][0]["message"]["content"]
     except Exception as exc:
         raise OpenRouterError(f"Unexpected OpenRouter response: {json.dumps(data)[:2000]}") from exc
-
-    if isinstance(text, list):
-        text = "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in text)
 
     try:
         return json.loads(text)
