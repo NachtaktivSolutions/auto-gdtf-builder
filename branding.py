@@ -21,10 +21,10 @@ def inject_brand_css() -> None:
     <style>
     :root {{
         --nas-bg: #08040f;
-        --nas-card: rgba(16, 9, 28, 0.92);
-        --nas-card-2: rgba(21, 12, 36, 0.96);
-        --nas-line: rgba(225, 72, 255, 0.32);
-        --nas-line-soft: rgba(225, 72, 255, 0.18);
+        --nas-card: rgba(16, 9, 28, 0.93);
+        --nas-card-2: rgba(21, 12, 36, 0.97);
+        --nas-line: rgba(225, 72, 255, 0.34);
+        --nas-line-soft: rgba(225, 72, 255, 0.20);
         --nas-purple: #8b1cf6;
         --nas-magenta: #d127d6;
         --nas-pink: #ff55ef;
@@ -35,6 +35,8 @@ def inject_brand_css() -> None:
         --nas-input-text: #ffffff;
         --nas-input-muted: #b9aecb;
         --nas-table-text: #1b0d29;
+        --nas-uploader-bg: rgba(24, 14, 42, 0.96);
+        --nas-uploader-file: rgba(255,255,255,0.10);
     }}
 
     .stApp {{
@@ -47,7 +49,7 @@ def inject_brand_css() -> None:
     }}
 
     [data-testid="stAppViewContainer"] > .main {{
-        background: rgba(0, 0, 0, 0.10);
+        background: rgba(0, 0, 0, 0.08);
     }}
 
     .block-container {{
@@ -57,7 +59,7 @@ def inject_brand_css() -> None:
     }}
 
     [data-testid="stSidebar"] {{
-        background: rgba(8, 4, 15, 0.96);
+        background: rgba(8, 4, 15, 0.97);
         border-right: 1px solid var(--nas-line-soft);
     }}
 
@@ -79,8 +81,7 @@ def inject_brand_css() -> None:
         border-radius: 28px;
         padding: 30px 34px;
         margin-bottom: 24px;
-        background:
-            linear-gradient(135deg, rgba(16, 9, 28, 0.94), rgba(26, 13, 45, 0.91));
+        background: linear-gradient(135deg, rgba(16, 9, 28, 0.95), rgba(26, 13, 45, 0.92));
         box-shadow: 0 22px 64px rgba(0, 0, 0, 0.38);
         backdrop-filter: blur(12px);
     }}
@@ -156,6 +157,7 @@ def inject_brand_css() -> None:
         background: linear-gradient(135deg, var(--nas-magenta), var(--nas-purple));
         box-shadow: 0 8px 22px rgba(139, 28, 246, .33);
         color: #fff !important;
+        flex: 0 0 34px;
     }}
 
     .nas-section-caption {{
@@ -164,17 +166,15 @@ def inject_brand_css() -> None:
         line-height: 1.45;
     }}
 
-    /* Real Streamlit bordered containers as cards */
     [data-testid="stVerticalBlockBorderWrapper"] {{
         border: 1px solid var(--nas-line-soft) !important;
         border-radius: 22px !important;
-        background: linear-gradient(180deg, rgba(16, 9, 28, .92), rgba(10, 6, 18, .92)) !important;
+        background: linear-gradient(180deg, rgba(16, 9, 28, .93), rgba(10, 6, 18, .93)) !important;
         box-shadow: 0 18px 45px rgba(0,0,0,.24);
         backdrop-filter: blur(10px);
         padding: 1.15rem 1.25rem !important;
     }}
 
-    /* Buttons */
     .stButton > button, .stDownloadButton > button {{
         border-radius: 14px !important;
         border: 1px solid rgba(255,255,255,.16) !important;
@@ -190,13 +190,6 @@ def inject_brand_css() -> None:
         transform: translateY(-1px);
     }}
 
-    /* Secondary/reset button still readable */
-    .stButton > button[kind="secondary"] {{
-        background: rgba(255,255,255,.08) !important;
-        border: 1px solid rgba(255,255,255,.18) !important;
-    }}
-
-    /* Labels */
     .stTextInput label, .stTextArea label, .stSelectbox label,
     .stCheckbox label, .stSlider label, .stFileUploader label {{
         color: var(--nas-text) !important;
@@ -207,7 +200,6 @@ def inject_brand_css() -> None:
         color: var(--nas-muted) !important;
     }}
 
-    /* Input fields: dark but readable */
     .stTextInput input,
     .stTextArea textarea,
     .stNumberInput input {{
@@ -215,7 +207,7 @@ def inject_brand_css() -> None:
         color: var(--nas-input-text) !important;
         -webkit-text-fill-color: var(--nas-input-text) !important;
         caret-color: #fff !important;
-        border: 1px solid rgba(255,255,255,.18) !important;
+        border: 1px solid rgba(255,255,255,.22) !important;
         border-radius: 12px !important;
         box-shadow: none !important;
     }}
@@ -225,7 +217,7 @@ def inject_brand_css() -> None:
     .stNumberInput input:focus {{
         background-color: var(--nas-input-bg-focus) !important;
         border-color: var(--nas-pink) !important;
-        box-shadow: 0 0 0 1px rgba(255,85,239,.22) !important;
+        box-shadow: 0 0 0 1px rgba(255,85,239,.26) !important;
     }}
 
     .stTextInput input::placeholder,
@@ -235,90 +227,144 @@ def inject_brand_css() -> None:
         -webkit-text-fill-color: var(--nas-input-muted) !important;
     }}
 
-    /* Selectbox */
     div[data-baseweb="select"] > div {{
         background: var(--nas-input-bg) !important;
         color: var(--nas-input-text) !important;
-        border: 1px solid rgba(255,255,255,.18) !important;
+        border: 1px solid rgba(255,255,255,.22) !important;
         border-radius: 12px !important;
     }}
+
     div[data-baseweb="select"] span,
     div[data-baseweb="select"] input {{
         color: var(--nas-input-text) !important;
         -webkit-text-fill-color: var(--nas-input-text) !important;
     }}
 
-    /* Checkbox */
     .stCheckbox p {{
         color: var(--nas-text) !important;
         font-weight: 700 !important;
     }}
 
-    /* File uploader: clearly visible */
+    /* Uploader: dropzone plus uploaded file pill */
+    [data-testid="stFileUploader"] {{
+        width: 100%;
+    }}
+
     [data-testid="stFileUploader"] section {{
-        background: rgba(20, 13, 36, .82) !important;
-        border: 2px dashed rgba(255, 85, 239, .55) !important;
+        position: relative;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-height: 118px !important;
+        padding: 18px !important;
+        background: var(--nas-uploader-bg) !important;
+        border: 2px dashed rgba(255, 85, 239, .68) !important;
         border-radius: 18px !important;
-        min-height: 92px;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
     }}
 
     [data-testid="stFileUploader"] section:hover {{
-        border-color: rgba(255, 85, 239, .92) !important;
-        background: rgba(28, 17, 48, .92) !important;
+        border-color: rgba(255, 85, 239, .95) !important;
+        background: rgba(31, 18, 54, .98) !important;
     }}
 
     [data-testid="stFileUploader"] section * {{
         color: var(--nas-text) !important;
+        fill: var(--nas-text) !important;
     }}
 
-    [data-testid="stFileUploaderDropzone"] button,
+    [data-testid="stFileUploaderDropzoneInstructions"] {{
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+        text-align: center !important;
+    }}
+
+    [data-testid="stFileUploaderDropzoneInstructions"] span,
+    [data-testid="stFileUploaderDropzoneInstructions"] small {{
+        color: var(--nas-text) !important;
+    }}
+
     [data-testid="stFileUploader"] button {{
         background: linear-gradient(135deg, #d127d6, #7f22ff) !important;
         color: white !important;
-        border: 0 !important;
+        border: 1px solid rgba(255,255,255,.16) !important;
         border-radius: 12px !important;
         font-weight: 850 !important;
     }}
 
-    [data-testid="stFileUploaderDropzone"] small {{
-        color: var(--nas-muted) !important;
+    /* Uploaded file row / pill in different Streamlit versions */
+    [data-testid="stFileUploader"] ul,
+    [data-testid="stFileUploader"] li,
+    [data-testid="stFileUploaderFile"],
+    [data-testid="stFileUploaderFileData"],
+    [data-testid="stFileUploaderFileName"],
+    [data-testid="stFileUploaderFileSize"] {{
+        background: transparent !important;
+        color: var(--nas-text) !important;
+        -webkit-text-fill-color: var(--nas-text) !important;
     }}
 
-    /* Expanders */
+    [data-testid="stFileUploader"] li,
+    [data-testid="stFileUploaderFile"] {{
+        background: var(--nas-uploader-file) !important;
+        border: 1px solid rgba(255,255,255,.20) !important;
+        border-radius: 14px !important;
+        padding: 10px 12px !important;
+        margin: 6px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+    }}
+
+    [data-testid="stFileUploader"] svg {{
+        color: var(--nas-text) !important;
+        fill: var(--nas-text) !important;
+    }}
+
+    [data-testid="stFileUploader"] [aria-label="Delete"],
+    [data-testid="stFileUploader"] [aria-label="Remove"] {{
+        background: rgba(255,255,255,.08) !important;
+        border: 1px solid rgba(255,255,255,.16) !important;
+        border-radius: 999px !important;
+    }}
+
     [data-testid="stExpander"] {{
         border: 1px solid rgba(225,72,255,.23) !important;
         border-radius: 14px !important;
         background: rgba(10, 6, 18, .55) !important;
         overflow: hidden;
     }}
+
     [data-testid="stExpander"] summary p {{
         color: var(--nas-text) !important;
         font-weight: 750 !important;
     }}
 
-    /* Metrics */
     [data-testid="stMetric"] {{
         border: 1px solid rgba(255,255,255,.12);
         background: rgba(255,255,255,.06);
         border-radius: 16px;
         padding: 14px 16px;
     }}
+
     [data-testid="stMetricLabel"],
     [data-testid="stMetricValue"] {{
         color: var(--nas-text) !important;
     }}
 
-    /* Tables / data editor */
     [data-testid="stDataFrame"] *,
     [data-testid="stDataEditor"] * {{
         color: var(--nas-table-text) !important;
     }}
+
     [data-testid="stDataFrame"] [role="grid"],
     [data-testid="stDataEditor"] [role="grid"] {{
         background: #ffffff !important;
         border-radius: 14px !important;
         overflow: hidden !important;
     }}
+
     [data-testid="stDataEditor"] input,
     [data-testid="stDataEditor"] textarea {{
         color: var(--nas-table-text) !important;
@@ -350,6 +396,114 @@ def inject_brand_css() -> None:
             padding-right: 1rem;
         }}
     }}
+
+    /* v0.15 uploader hard fix */
+    [data-testid="stFileUploader"] {
+        width: 100% !important;
+    }
+
+    [data-testid="stFileUploader"] > div {
+        width: 100% !important;
+    }
+
+    [data-testid="stFileUploader"] section {
+        min-height: 138px !important;
+        padding: 24px !important;
+        background: linear-gradient(135deg, rgba(24,14,42,.98), rgba(34,18,58,.96)) !important;
+        border: 2px dashed rgba(255,85,239,.82) !important;
+        border-radius: 20px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 16px !important;
+        overflow: visible !important;
+    }
+
+    [data-testid="stFileUploader"] section:hover {
+        border-color: #ff55ef !important;
+        background: linear-gradient(135deg, rgba(31,18,54,.99), rgba(42,23,72,.98)) !important;
+    }
+
+    [data-testid="stFileUploader"] section * {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        fill: #ffffff !important;
+    }
+
+    [data-testid="stFileUploader"] button,
+    [data-testid="stFileUploader"] button[kind],
+    [data-testid="stFileUploader"] [data-testid="stBaseButton-secondary"] {
+        background: linear-gradient(135deg, #d127d6, #7f22ff) !important;
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        border: 1px solid rgba(255,255,255,.24) !important;
+        border-radius: 14px !important;
+        min-width: 172px !important;
+        min-height: 44px !important;
+        padding: 0 18px !important;
+        font-weight: 900 !important;
+        box-shadow: 0 10px 26px rgba(127,34,255,.28) !important;
+        opacity: 1 !important;
+    }
+
+    [data-testid="stFileUploader"] button p,
+    [data-testid="stFileUploader"] button span,
+    [data-testid="stFileUploader"] button div {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        font-weight: 900 !important;
+    }
+
+    [data-testid="stFileUploaderDropzoneInstructions"] {
+        display: flex !important;
+        flex-direction: column !important;
+        text-align: center !important;
+        gap: 6px !important;
+        max-width: 540px !important;
+    }
+
+    [data-testid="stFileUploaderDropzoneInstructions"] span,
+    [data-testid="stFileUploaderDropzoneInstructions"] small,
+    [data-testid="stFileUploaderDropzoneInstructions"] div {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        opacity: 1 !important;
+        font-weight: 700 !important;
+    }
+
+    /* Hide Streamlit's low-contrast internal selected-file pill.
+       The app shows a custom readable upload status directly below the uploader. */
+    [data-testid="stFileUploaderFile"],
+    [data-testid="stFileUploaderFileData"],
+    [data-testid="stFileUploaderFileName"],
+    [data-testid="stFileUploaderFileSize"],
+    [data-testid="stFileUploader"] ul,
+    [data-testid="stFileUploader"] li {
+        display: none !important;
+    }
+
+    .nas-upload-status {
+        margin-top: 12px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,.16);
+        background: rgba(57, 217, 138, .12);
+        color: #ffffff !important;
+        font-weight: 750;
+    }
+
+    .nas-upload-status span {
+        color: #39d98a !important;
+        -webkit-text-fill-color: #39d98a !important;
+        font-weight: 900;
+    }
+
+    .nas-reset-note {
+        color: var(--nas-muted) !important;
+        font-size: .86rem;
+        margin-top: 6px;
+    }
+
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
