@@ -12,9 +12,7 @@ def asset_uri(filename: str) -> str:
     path = ASSET_DIR / filename
     if not path.exists():
         return ""
-    data = path.read_bytes()
-    mime = "image/png"
-    return f"data:{mime};base64," + base64.b64encode(data).decode("utf-8")
+    return "data:image/png;base64," + base64.b64encode(path.read_bytes()).decode("utf-8")
 
 
 def inject_brand_css() -> None:
@@ -22,96 +20,103 @@ def inject_brand_css() -> None:
     css = f"""
     <style>
     :root {{
-        --nas-bg: #07020d;
-        --nas-panel: rgba(18, 10, 31, 0.92);
-        --nas-panel-solid: #171020;
-        --nas-border: rgba(225, 70, 255, 0.28);
-        --nas-border-strong: rgba(255, 92, 235, 0.46);
+        --nas-bg: #08040f;
+        --nas-card: rgba(16, 9, 28, 0.92);
+        --nas-card-2: rgba(21, 12, 36, 0.96);
+        --nas-line: rgba(225, 72, 255, 0.32);
+        --nas-line-soft: rgba(225, 72, 255, 0.18);
         --nas-purple: #8b1cf6;
         --nas-magenta: #d127d6;
         --nas-pink: #ff55ef;
         --nas-text: #ffffff;
-        --nas-muted: #d9d0ea;
-        --nas-input-bg: #fbf8ff;
-        --nas-input-text: #15091f;
+        --nas-muted: #d8d0e8;
+        --nas-input-bg: #140d24;
+        --nas-input-bg-focus: #1d1232;
+        --nas-input-text: #ffffff;
+        --nas-input-muted: #b9aecb;
+        --nas-table-text: #1b0d29;
     }}
 
     .stApp {{
         background-color: var(--nas-bg);
         background-image: url("{bg}");
         background-size: cover;
-        background-position: center center;
+        background-position: center top;
         background-attachment: fixed;
         color: var(--nas-text);
     }}
 
     [data-testid="stAppViewContainer"] > .main {{
-        background: linear-gradient(90deg, rgba(5,2,9,0.18), rgba(5,2,9,0.08));
-    }}
-
-    [data-testid="stSidebar"] {{
-        background: rgba(9, 4, 17, 0.96);
-        border-right: 1px solid var(--nas-border);
-    }}
-
-    [data-testid="stSidebar"] * {{
-        color: var(--nas-text);
+        background: rgba(0, 0, 0, 0.10);
     }}
 
     .block-container {{
-        padding-top: 1.5rem;
-        padding-bottom: 3.5rem;
-        max-width: 1380px;
+        max-width: 1320px;
+        padding-top: 1.35rem;
+        padding-bottom: 4rem;
     }}
 
-    h1, h2, h3, h4, h5, h6, p, span, label, div {{
+    [data-testid="stSidebar"] {{
+        background: rgba(8, 4, 15, 0.96);
+        border-right: 1px solid var(--nas-line-soft);
+    }}
+
+    [data-testid="stSidebar"] * {{
+        color: var(--nas-text) !important;
+    }}
+
+    h1, h2, h3, h4, h5, h6 {{
+        color: var(--nas-text) !important;
+        letter-spacing: -0.015em;
+    }}
+
+    p, span, label, div {{
         color: inherit;
     }}
 
     .nas-hero {{
-        border: 1px solid var(--nas-border);
+        border: 1px solid var(--nas-line);
         border-radius: 28px;
-        padding: 34px 38px;
+        padding: 30px 34px;
         margin-bottom: 24px;
-        background: linear-gradient(135deg, rgba(15, 8, 27, 0.94), rgba(31, 14, 53, 0.90));
-        box-shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
+        background:
+            linear-gradient(135deg, rgba(16, 9, 28, 0.94), rgba(26, 13, 45, 0.91));
+        box-shadow: 0 22px 64px rgba(0, 0, 0, 0.38);
         backdrop-filter: blur(12px);
     }}
 
     .nas-hero-inner {{
         display: flex;
         align-items: center;
-        gap: 30px;
+        gap: 34px;
     }}
 
     .nas-logo {{
-        max-width: 390px;
-        width: min(38vw, 390px);
+        width: min(36vw, 365px);
+        max-width: 365px;
         height: auto;
-        display: block;
-        filter: drop-shadow(0 10px 30px rgba(0,0,0,.35));
+        filter: drop-shadow(0 10px 28px rgba(0,0,0,.35));
     }}
 
     .nas-hero-title {{
-        font-size: clamp(2.1rem, 4vw, 4.25rem);
-        line-height: 0.95;
+        font-size: clamp(2rem, 4vw, 4.1rem);
+        line-height: .95;
         font-weight: 950;
         margin: 0;
-        background: linear-gradient(90deg, #ff4fe9 0%, #8b1cf6 88%);
+        background: linear-gradient(90deg, #ff58ee 0%, #8b1cf6 90%);
         -webkit-background-clip: text;
         background-clip: text;
-        color: transparent;
+        color: transparent !important;
         text-transform: uppercase;
         font-style: italic;
-        letter-spacing: -0.035em;
     }}
 
     .nas-hero-subtitle {{
         margin-top: 12px;
-        color: var(--nas-muted);
-        font-size: 1.06rem;
-        max-width: 760px;
+        color: var(--nas-muted) !important;
+        font-size: 1.02rem;
         line-height: 1.45;
+        max-width: 760px;
     }}
 
     .nas-badge-row {{
@@ -123,128 +128,169 @@ def inject_brand_css() -> None:
 
     .nas-badge {{
         border: 1px solid rgba(255,255,255,0.14);
-        background: rgba(255,255,255,0.09);
-        color: #fff;
+        background: rgba(255,255,255,0.08);
+        color: #fff !important;
         padding: 7px 12px;
         border-radius: 999px;
-        font-size: 0.84rem;
-        backdrop-filter: blur(10px);
+        font-size: .84rem;
     }}
 
-    .nas-card {{
-        border: 1px solid var(--nas-border);
-        border-radius: 20px;
-        padding: 21px 23px;
-        background: linear-gradient(180deg, rgba(18, 10, 31, 0.94), rgba(12, 7, 22, 0.94));
-        box-shadow: 0 14px 45px rgba(0,0,0,0.24);
-        margin: 16px 0 22px 0;
-        backdrop-filter: blur(10px);
+    .nas-section-title {{
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.35rem;
+        font-weight: 900;
+        margin-bottom: 4px;
+        color: var(--nas-text) !important;
     }}
 
     .nas-step {{
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 34px;
+        width: 34px;
         height: 34px;
         border-radius: 12px;
-        margin-right: 10px;
-        font-weight: 850;
-        background: linear-gradient(135deg, var(--nas-magenta), var(--nas-purple));
-        color: white;
-        box-shadow: 0 8px 24px rgba(139, 28, 246, 0.35);
-    }}
-
-    .nas-section-title {{
-        display: flex;
-        align-items: center;
         font-weight: 900;
-        font-size: 1.35rem;
-        margin-bottom: 8px;
-        color: var(--nas-text);
+        background: linear-gradient(135deg, var(--nas-magenta), var(--nas-purple));
+        box-shadow: 0 8px 22px rgba(139, 28, 246, .33);
+        color: #fff !important;
     }}
 
     .nas-section-caption {{
-        color: var(--nas-muted);
-        margin-bottom: 16px;
+        color: var(--nas-muted) !important;
+        margin: 2px 0 18px 44px;
         line-height: 1.45;
+    }}
+
+    /* Real Streamlit bordered containers as cards */
+    [data-testid="stVerticalBlockBorderWrapper"] {{
+        border: 1px solid var(--nas-line-soft) !important;
+        border-radius: 22px !important;
+        background: linear-gradient(180deg, rgba(16, 9, 28, .92), rgba(10, 6, 18, .92)) !important;
+        box-shadow: 0 18px 45px rgba(0,0,0,.24);
+        backdrop-filter: blur(10px);
+        padding: 1.15rem 1.25rem !important;
     }}
 
     /* Buttons */
     .stButton > button, .stDownloadButton > button {{
         border-radius: 14px !important;
-        border: 1px solid rgba(255,255,255,0.14) !important;
+        border: 1px solid rgba(255,255,255,.16) !important;
         background: linear-gradient(135deg, #d127d6, #7f22ff) !important;
-        color: white !important;
-        font-weight: 800 !important;
-        box-shadow: 0 12px 28px rgba(127, 34, 255, 0.27);
+        color: #fff !important;
+        font-weight: 850 !important;
+        box-shadow: 0 12px 28px rgba(127, 34, 255, .24);
+        min-height: 42px;
     }}
 
     .stButton > button:hover, .stDownloadButton > button:hover {{
-        border-color: rgba(255,255,255,0.34) !important;
+        border-color: rgba(255,255,255,.36) !important;
         transform: translateY(-1px);
     }}
 
-    /* File uploader */
-    [data-testid="stFileUploader"] section {{
-        border-radius: 18px;
-        border: 1px dashed rgba(255, 85, 239, 0.50);
-        background: rgba(255,255,255,0.055);
+    /* Secondary/reset button still readable */
+    .stButton > button[kind="secondary"] {{
+        background: rgba(255,255,255,.08) !important;
+        border: 1px solid rgba(255,255,255,.18) !important;
     }}
 
-    [data-testid="stFileUploader"] section * {{
-        color: var(--nas-text) !important;
-    }}
-
-    /* Labels and help text */
+    /* Labels */
     .stTextInput label, .stTextArea label, .stSelectbox label,
     .stCheckbox label, .stSlider label, .stFileUploader label {{
         color: var(--nas-text) !important;
-        font-weight: 700 !important;
+        font-weight: 750 !important;
     }}
 
     .stCaption, small, .stMarkdown p {{
         color: var(--nas-muted) !important;
     }}
 
-    /* Inputs: readable white fields */
+    /* Input fields: dark but readable */
     .stTextInput input,
     .stTextArea textarea,
-    .stNumberInput input,
-    div[data-baseweb="select"] > div,
-    div[data-baseweb="input"] > div,
-    div[data-baseweb="textarea"] > div {{
-        background: var(--nas-input-bg) !important;
+    .stNumberInput input {{
+        background-color: var(--nas-input-bg) !important;
         color: var(--nas-input-text) !important;
-        border: 1px solid rgba(0,0,0,0.10) !important;
+        -webkit-text-fill-color: var(--nas-input-text) !important;
+        caret-color: #fff !important;
+        border: 1px solid rgba(255,255,255,.18) !important;
         border-radius: 12px !important;
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.45);
+        box-shadow: none !important;
+    }}
+
+    .stTextInput input:focus,
+    .stTextArea textarea:focus,
+    .stNumberInput input:focus {{
+        background-color: var(--nas-input-bg-focus) !important;
+        border-color: var(--nas-pink) !important;
+        box-shadow: 0 0 0 1px rgba(255,85,239,.22) !important;
     }}
 
     .stTextInput input::placeholder,
     .stTextArea textarea::placeholder {{
-        color: #6e607e !important;
+        color: var(--nas-input-muted) !important;
         opacity: 1 !important;
+        -webkit-text-fill-color: var(--nas-input-muted) !important;
     }}
 
+    /* Selectbox */
+    div[data-baseweb="select"] > div {{
+        background: var(--nas-input-bg) !important;
+        color: var(--nas-input-text) !important;
+        border: 1px solid rgba(255,255,255,.18) !important;
+        border-radius: 12px !important;
+    }}
     div[data-baseweb="select"] span,
     div[data-baseweb="select"] input {{
         color: var(--nas-input-text) !important;
+        -webkit-text-fill-color: var(--nas-input-text) !important;
     }}
 
-    /* Checkbox text */
+    /* Checkbox */
     .stCheckbox p {{
         color: var(--nas-text) !important;
-        font-weight: 650 !important;
+        font-weight: 700 !important;
+    }}
+
+    /* File uploader: clearly visible */
+    [data-testid="stFileUploader"] section {{
+        background: rgba(20, 13, 36, .82) !important;
+        border: 2px dashed rgba(255, 85, 239, .55) !important;
+        border-radius: 18px !important;
+        min-height: 92px;
+    }}
+
+    [data-testid="stFileUploader"] section:hover {{
+        border-color: rgba(255, 85, 239, .92) !important;
+        background: rgba(28, 17, 48, .92) !important;
+    }}
+
+    [data-testid="stFileUploader"] section * {{
+        color: var(--nas-text) !important;
+    }}
+
+    [data-testid="stFileUploaderDropzone"] button,
+    [data-testid="stFileUploader"] button {{
+        background: linear-gradient(135deg, #d127d6, #7f22ff) !important;
+        color: white !important;
+        border: 0 !important;
+        border-radius: 12px !important;
+        font-weight: 850 !important;
+    }}
+
+    [data-testid="stFileUploaderDropzone"] small {{
+        color: var(--nas-muted) !important;
     }}
 
     /* Expanders */
     [data-testid="stExpander"] {{
-        border: 1px solid rgba(225,70,255,0.26);
-        border-radius: 14px;
-        background: rgba(8, 4, 15, 0.44);
+        border: 1px solid rgba(225,72,255,.23) !important;
+        border-radius: 14px !important;
+        background: rgba(10, 6, 18, .55) !important;
+        overflow: hidden;
     }}
-
     [data-testid="stExpander"] summary p {{
         color: var(--nas-text) !important;
         font-weight: 750 !important;
@@ -252,51 +298,43 @@ def inject_brand_css() -> None:
 
     /* Metrics */
     [data-testid="stMetric"] {{
-        background: rgba(255,255,255,0.075);
-        border: 1px solid rgba(255,255,255,0.10);
-        border-radius: 18px;
-        padding: 16px;
+        border: 1px solid rgba(255,255,255,.12);
+        background: rgba(255,255,255,.06);
+        border-radius: 16px;
+        padding: 14px 16px;
     }}
-
-    [data-testid="stMetricLabel"], [data-testid="stMetricValue"] {{
+    [data-testid="stMetricLabel"],
+    [data-testid="stMetricValue"] {{
         color: var(--nas-text) !important;
     }}
 
-    /* Data editor readability */
+    /* Tables / data editor */
     [data-testid="stDataFrame"] *,
     [data-testid="stDataEditor"] * {{
-        color: #17091f !important;
+        color: var(--nas-table-text) !important;
     }}
-
     [data-testid="stDataFrame"] [role="grid"],
     [data-testid="stDataEditor"] [role="grid"] {{
-        background: rgba(255,255,255,0.98) !important;
+        background: #ffffff !important;
         border-radius: 14px !important;
-        overflow: hidden;
+        overflow: hidden !important;
     }}
-
-    [data-testid="stDataFrame"] thead *,
-    [data-testid="stDataEditor"] thead * {{
-        color: #2b1740 !important;
-        font-weight: 800 !important;
-    }}
-
     [data-testid="stDataEditor"] input,
     [data-testid="stDataEditor"] textarea {{
-        color: #17091f !important;
-        background: #ffffff !important;
+        color: var(--nas-table-text) !important;
+        -webkit-text-fill-color: var(--nas-table-text) !important;
+        background: #fff !important;
     }}
 
-    /* Alerts */
     [data-testid="stAlert"] {{
-        border-radius: 16px;
+        border-radius: 14px !important;
     }}
 
     .nas-footer {{
-        color: var(--nas-muted);
         text-align: center;
-        font-size: 0.86rem;
-        padding: 28px 0 10px 0;
+        color: var(--nas-muted) !important;
+        font-size: .86rem;
+        padding: 28px 0 8px;
     }}
 
     @media (max-width: 850px) {{
@@ -305,7 +343,7 @@ def inject_brand_css() -> None:
             align-items: flex-start;
         }}
         .nas-logo {{
-            width: min(76vw, 340px);
+            width: min(78vw, 340px);
         }}
         .block-container {{
             padding-left: 1rem;
@@ -322,8 +360,8 @@ def render_sidebar_logo() -> None:
     if logo:
         st.sidebar.markdown(
             f"""
-            <div style="text-align:center; padding: 12px 4px 24px 4px;">
-                <img src="{logo}" style="max-width:190px; width:90%; height:auto;" />
+            <div style="text-align:center; padding: 10px 0 24px;">
+                <img src="{logo}" style="max-width:210px; width:92%; height:auto;" />
             </div>
             """,
             unsafe_allow_html=True,
@@ -341,13 +379,13 @@ def render_hero(version: str) -> None:
                 <div>
                     <div class="nas-hero-title">GDTF Builder</div>
                     <div class="nas-hero-subtitle">
-                        Fixture-Generator für MA3, Daslight & Wolfmix. Manual hochladen, Kanäle prüfen und sauber als GDTF, CSV oder JSON exportieren.
+                        Manual hochladen, DMX-Kanäle prüfen und sauber als GDTF, CSV oder JSON exportieren.
                     </div>
                     <div class="nas-badge-row">
                         <span class="nas-badge">v{version}</span>
                         <span class="nas-badge">Nachtaktiv Solutions</span>
                         <span class="nas-badge">B240 Template</span>
-                        <span class="nas-badge">GDTF / CSV / JSON</span>
+                        <span class="nas-badge">MA3 / Daslight / Wolfmix</span>
                     </div>
                 </div>
             </div>
@@ -365,11 +403,3 @@ def section_header(number: int, title: str, caption: str = "") -> None:
         """,
         unsafe_allow_html=True,
     )
-
-
-def open_card() -> None:
-    st.markdown('<div class="nas-card">', unsafe_allow_html=True)
-
-
-def close_card() -> None:
-    st.markdown('</div>', unsafe_allow_html=True)
